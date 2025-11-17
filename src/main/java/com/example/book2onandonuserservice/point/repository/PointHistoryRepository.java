@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
 
-    // 현재 보유 포인트 내역 (가장 최신 이력 1건)
+    // 현재 보유 포인트 내역 (가장 최신 이력 1건만)
     Optional<PointHistory> findTop1ByUserOrderByPointCreatedDateDesc(Users user);
 
     // 포인트 전체 이력 조회

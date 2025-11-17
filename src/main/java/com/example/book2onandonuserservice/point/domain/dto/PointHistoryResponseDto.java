@@ -26,4 +26,5 @@ public class PointHistoryResponseDto {
     private Long reviewId;
 
     private Long returnEntity;
+
 }

@@ -15,7 +15,7 @@ public class UserAddressUpdateRequest {
     @NotNull
     private Long addressId;
 
-    @Size(max = 30)
+    @Size(max = 20)
     private String userAddressName;
 
     @NotNull

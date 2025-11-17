@@ -19,7 +19,7 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     // 포인트 전체 이력 조회
     Page<PointHistory> findAllByUser(Users user, Pageable pageable);
 
-    // 특정 주문항목에 사용된 포인트 조회 (취소/반품용)
+    // 특정 주문 항목에 사용된 포인트 조회 (취소/반품용)
     List<PointHistory> findByOrderItemId(Long orderItemId);
 }
 

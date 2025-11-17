@@ -22,6 +22,8 @@ public class PointHistoryResponseDto {
     private LocalDateTime pointExpiredDate;
 
     private Long orderItemId;
+
     private Long reviewId;
+
     private Long returnEntity;
 }

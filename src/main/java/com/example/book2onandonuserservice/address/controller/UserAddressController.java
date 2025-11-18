@@ -39,7 +39,7 @@ public class UserAddressController {
     @GetMapping("/{addressId}")
     public ResponseEntity<UserAddressResponse> getAddressDetails(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @Valid @PathVariable Long addressId
+            @PathVariable Long addressId
     ) {
         UserAddressResponse address = userAddressService.findByUserIdAndAddressId(userId, addressId);
         return ResponseEntity.ok(address);
@@ -49,7 +49,7 @@ public class UserAddressController {
     @PostMapping
     public ResponseEntity<UserAddressResponse> createAddress(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @RequestBody UserAddressCreateRequest request
+            @Valid @RequestBody UserAddressCreateRequest request
     ) {
         UserAddressResponse responseDto = userAddressService.save(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);

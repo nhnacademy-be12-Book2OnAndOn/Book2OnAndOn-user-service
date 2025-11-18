@@ -56,6 +56,9 @@ public class PointPolicyServiceImpl implements PointPolicyService {
         return convertToResponse(policy);
     }
 
+    // 5. 포인트 정책 삭제 -> hard 삭제 시 연관 테이블 이슈 발생 가능 -> 지피티한테 "반드시" 물어보기
+    // 변경) IllegalArgumentException를 CustomException으로 변경 -> ExceptionHandler 추가
+
     // (보조). Entity -> DTO로 변환
     private PointPolicyResponseDto convertToResponse(PointPolicy pointPolicy) {
         return PointPolicyResponseDto.builder()

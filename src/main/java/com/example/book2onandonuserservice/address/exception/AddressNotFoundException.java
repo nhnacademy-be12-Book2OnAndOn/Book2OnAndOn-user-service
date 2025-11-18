@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.exception;
+package com.example.book2onandonuserservice.address.exception;
 
 public class AddressNotFoundException extends RuntimeException {
     public AddressNotFoundException() {

@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.domain.dto.response;
+package com.example.book2onandonuserservice.address.domain.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

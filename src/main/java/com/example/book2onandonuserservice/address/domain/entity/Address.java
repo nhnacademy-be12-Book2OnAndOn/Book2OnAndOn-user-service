@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.domain.entity;
+package com.example.book2onandonuserservice.address.domain.entity;
 
 
 import com.example.book2onandonuserservice.user.domain.entity.Users;

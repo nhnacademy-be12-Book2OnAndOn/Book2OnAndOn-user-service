@@ -4,8 +4,4 @@ public class AuthenticationFailedException extends RuntimeException {
     public AuthenticationFailedException() {
         super("아이디 또는 비밀번호가 일치하지 않습니다.");
     }
-
-    public AuthenticationFailedException(String message) {
-        super(message);
-    }
 }

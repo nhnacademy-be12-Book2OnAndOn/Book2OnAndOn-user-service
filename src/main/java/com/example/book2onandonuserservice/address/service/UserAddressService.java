@@ -1,18 +1,18 @@
 package com.example.book2onandonuserservice.address.service;
 
-import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressCreateRequest;
-import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressUpdateRequest;
-import com.example.book2onandonuserservice.address.domain.dto.response.UserAddressResponse;
+import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressCreateRequestDto;
+import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressUpdateRequestDto;
+import com.example.book2onandonuserservice.address.domain.dto.response.UserAddressResponseDto;
 import java.util.List;
 
 public interface UserAddressService {
-    List<UserAddressResponse> findByUserId(Long userId);
+    List<UserAddressResponseDto> findByUserId(Long userId);
 
-    UserAddressResponse findByUserIdAndAddressId(Long userId, Long addressId);
+    UserAddressResponseDto findByUserIdAndAddressId(Long userId, Long addressId);
 
-    UserAddressResponse save(Long userId, UserAddressCreateRequest request);
+    UserAddressResponseDto save(Long userId, UserAddressCreateRequestDto request);
 
-    UserAddressResponse update(Long userId, Long addressId, UserAddressUpdateRequest request);
+    UserAddressResponseDto update(Long userId, Long addressId, UserAddressUpdateRequestDto request);
 
     void deleteByUserAddressId(Long userId, Long addressId);
 }

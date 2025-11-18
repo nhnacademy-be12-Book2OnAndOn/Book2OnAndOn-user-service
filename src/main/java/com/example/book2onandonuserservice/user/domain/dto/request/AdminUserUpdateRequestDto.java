@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class AdminUserUpdateRequest {
+public class AdminUserUpdateRequestDto {
     private String nickname;
     private String role;
 }

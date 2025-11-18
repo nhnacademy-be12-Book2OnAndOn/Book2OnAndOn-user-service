@@ -1,7 +1,7 @@
 package com.example.book2onandonuserservice.auth.jwt;
 
-import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequest;
-import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponse;
+import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -29,14 +29,14 @@ public class JwtTokenProvider {
     }
 
     //인증 성공 시 AccessToken, RefreshToken 생성
-    public TokenResponse createTokens(TokenRequest tokenRequest) {
+    public TokenResponseDto createTokens(TokenRequestDto tokenRequest) {
         String accessToken = createAccessToken(tokenRequest);
         String refreshToken = createRefreshToken();
 
-        return new TokenResponse(accessToken, refreshToken);
+        return new TokenResponseDto(accessToken, refreshToken);
     }
 
-    private String createAccessToken(TokenRequest tokenRequest) {
+    private String createAccessToken(TokenRequestDto tokenRequest) {
         Claims claims = Jwts.claims();
         claims.put("userId", tokenRequest.userId());
         claims.put("role", tokenRequest.role());

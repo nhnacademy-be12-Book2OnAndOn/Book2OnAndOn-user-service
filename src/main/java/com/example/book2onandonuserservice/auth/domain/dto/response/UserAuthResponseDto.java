@@ -4,12 +4,12 @@ import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import lombok.Builder;
 
 @Builder
-public record UserAuthResponse(
+public record UserAuthResponseDto(
         Long authId,
         String provider
 ) {
-    public static UserAuthResponse fromEntity(UserAuth auth) {
-        return UserAuthResponse.builder()
+    public static UserAuthResponseDto fromEntity(UserAuth auth) {
+        return UserAuthResponseDto.builder()
                 .authId(auth.getAuthId())
                 .provider(auth.getProvider())
                 .build();

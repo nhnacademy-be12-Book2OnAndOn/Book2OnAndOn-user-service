@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class UserAddressUpdateRequest {
+public class UserAddressUpdateRequestDto {
     @NotNull
     private Long addressId;
 

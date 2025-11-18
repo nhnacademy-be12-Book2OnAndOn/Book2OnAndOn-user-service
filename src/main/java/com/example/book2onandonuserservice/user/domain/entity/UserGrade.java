@@ -28,7 +28,7 @@ public class UserGrade {
     @NotNull
     @Column(name = "user_grade_name", unique = true, length = 10)
     @Size(max = 10)
-    private String grade;
+    private GradeName grade;
 
     @NotNull
     @Column(name = "user_point_add_rate")

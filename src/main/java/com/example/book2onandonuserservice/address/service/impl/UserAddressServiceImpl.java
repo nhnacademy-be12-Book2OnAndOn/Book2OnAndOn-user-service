@@ -1,8 +1,8 @@
 package com.example.book2onandonuserservice.address.service.impl;
 
-import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressCreateRequest;
-import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressUpdateRequest;
-import com.example.book2onandonuserservice.address.domain.dto.response.UserAddressResponse;
+import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressCreateRequestDto;
+import com.example.book2onandonuserservice.address.domain.dto.request.UserAddressUpdateRequestDto;
+import com.example.book2onandonuserservice.address.domain.dto.response.UserAddressResponseDto;
 import com.example.book2onandonuserservice.address.domain.entity.Address;
 import com.example.book2onandonuserservice.address.exception.AddressLimitExceededException;
 import com.example.book2onandonuserservice.address.exception.AddressNameDuplicateException;
@@ -32,8 +32,8 @@ public class UserAddressServiceImpl implements UserAddressService {
     }
 
     //Entity를 Response DTO로 변환
-    private UserAddressResponse convertToResponse(Address address) {
-        return UserAddressResponse.builder()
+    private UserAddressResponseDto convertToResponse(Address address) {
+        return UserAddressResponseDto.builder()
                 .addressId(address.getAddressId())
                 .userAddressName(address.getUserAddressName())
                 .userAddress(address.getUserAddress())
@@ -42,7 +42,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     }
 
     @Override
-    public List<UserAddressResponse> findByUserId(Long userId) {
+    public List<UserAddressResponseDto> findByUserId(Long userId) {
         Users user = findUserOrThrow(userId);
 
         return userAddressRepository.findAllByUser(user).stream()
@@ -51,7 +51,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     }
 
     @Override
-    public UserAddressResponse findByUserIdAndAddressId(Long userId, Long addressId) {
+    public UserAddressResponseDto findByUserIdAndAddressId(Long userId, Long addressId) {
         Users user = findUserOrThrow(userId);
 
         Address address = userAddressRepository.findByUserAndAddressId(user, addressId)
@@ -62,7 +62,7 @@ public class UserAddressServiceImpl implements UserAddressService {
 
     @Override
     @Transactional
-    public UserAddressResponse save(Long userId, UserAddressCreateRequest request) {
+    public UserAddressResponseDto save(Long userId, UserAddressCreateRequestDto request) {
         Users user = findUserOrThrow(userId);
 
         if (userAddressRepository.countByUser(user) >= 10) {
@@ -86,7 +86,7 @@ public class UserAddressServiceImpl implements UserAddressService {
 
     @Override
     @Transactional
-    public UserAddressResponse update(Long userId, Long addressId, UserAddressUpdateRequest request) {
+    public UserAddressResponseDto update(Long userId, Long addressId, UserAddressUpdateRequestDto request) {
         Users user = findUserOrThrow(userId);
 
         //엔티티 조회 (소유권 확인까지 동시 수행)

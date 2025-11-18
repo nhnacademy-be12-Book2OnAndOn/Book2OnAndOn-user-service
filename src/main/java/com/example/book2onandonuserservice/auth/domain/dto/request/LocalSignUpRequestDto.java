@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
-public record LocalSignUpRequest(
+public record LocalSignUpRequestDto(
         @NotBlank(message = "로그인 아이디는 필수입니다.")
         @Size(min = 4, max = 30, message = "최소 4자, 최대 30자 이내로 작성해주세요.")
         String userLoginId,

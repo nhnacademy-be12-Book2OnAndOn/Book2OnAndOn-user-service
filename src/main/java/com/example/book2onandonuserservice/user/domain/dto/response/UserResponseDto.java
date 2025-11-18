@@ -5,7 +5,7 @@ import com.example.book2onandonuserservice.user.domain.entity.Users;
 import lombok.Builder;
 
 @Builder
-public record UserResponse(
+public record UserResponseDto(
         Long userId,
         String userLoginId, // 로그인 아이디
         String name,
@@ -16,8 +16,8 @@ public record UserResponse(
         Long point,
         String gradeName
 ) {
-    public static UserResponse fromEntity(Users user) {
-        return UserResponse.builder()
+    public static UserResponseDto fromEntity(Users user) {
+        return UserResponseDto.builder()
                 .userId(user.getUserId())
                 .userLoginId(user.getUserLoginId())
                 .name(user.getName())

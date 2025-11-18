@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class UserAddressCreateRequest {
+public class UserAddressCreateRequestDto {
     @Size(max = 20)
     @NotNull(message = "주소 이름은 필수입니다.")
     private String userAddressName;

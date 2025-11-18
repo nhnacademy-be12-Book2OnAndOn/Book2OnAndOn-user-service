@@ -3,7 +3,7 @@ package com.example.book2onandonuserservice.user.domain.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public record PasswordChangeRequest(
+public record PasswordChangeRequestDto(
         @NotBlank(message = "현재 비밀번호를 입력해주세요.")
         String currentPassword,
 

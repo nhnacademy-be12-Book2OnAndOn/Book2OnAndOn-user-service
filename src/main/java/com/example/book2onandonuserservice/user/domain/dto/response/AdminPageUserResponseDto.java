@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import lombok.Data;
 
 @Data
-public class AdminPageUserResponse {
+public class AdminPageUserResponseDto {
     private String name;
     private String nickname;
     private String email;
@@ -14,7 +14,7 @@ public class AdminPageUserResponse {
     private String userLoginId;
     private String role;
 
-    public AdminPageUserResponse(Users users) {
+    public AdminPageUserResponseDto(Users users) {
         this.name = users.getName();
         this.nickname = users.getNickname();
         this.email = users.getEmail();

@@ -3,7 +3,7 @@ package com.example.book2onandonuserservice.auth.domain.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public record LoginRequest(
+public record LoginRequestDto(
         @NotBlank String username,
         @NotBlank(message = "비밀번호는 필수 입니다.")
         @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,16}$",

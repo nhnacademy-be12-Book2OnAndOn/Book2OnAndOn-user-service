@@ -89,21 +89,22 @@ public class UserAddressServiceImpl implements UserAddressService {
     public UserAddressResponse update(Long userId, Long addressId, UserAddressUpdateRequest request) {
         Users user = findUserOrThrow(userId);
 
-        if (!request.getAddressId().equals(addressId)) {
-            throw new RuntimeException("요청 ID가 일치하지 않습니다.");
-        }
-
+        //엔티티 조회 (소유권 확인까지 동시 수행)
         Address address = userAddressRepository.findByUserAndAddressId(user, addressId)
                 .orElseThrow(AddressNotFoundException::new);
 
+        //주소이름 중복 검증
         if (!address.getUserAddressName().equals(request.getUserAddressName()) &&
                 userAddressRepository.existsByUserAndUserAddressName(user, request.getUserAddressName())) {
             throw new AddressNameDuplicateException();
         }
 
-        address.setUserAddressName(request.getUserAddressName());
-        address.setUserAddress(request.getUserAddress());
-        address.setUserAddressDetail(request.getUserAddressDetail());
+        //터티체킹
+        address.updateAddressInfo(
+                request.getUserAddressName(),
+                request.getUserAddress(),
+                request.getUserAddressDetail()
+        );
 
         return convertToResponse(address);
     }

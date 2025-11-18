@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.domain.entity;
+package com.example.book2onandonuserservice.address.domain.entity;
 
 
 import com.example.book2onandonuserservice.user.domain.entity.Users;
@@ -16,11 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,4 +47,10 @@ public class Address {
     @JoinColumn(name = "user_id")
     private Users user;
 
+    //더티체킹을 위한 매서드
+    public void updateAddressInfo(String userAddressName, String userAddress, String userAddressDetail) {
+        this.userAddressName = userAddressName;
+        this.userAddress = userAddress;
+        this.userAddressDetail = userAddressDetail;
+    }
 }

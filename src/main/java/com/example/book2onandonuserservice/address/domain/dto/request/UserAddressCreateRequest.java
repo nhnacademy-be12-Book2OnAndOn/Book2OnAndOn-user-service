@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.domain.dto.request;
+package com.example.book2onandonuserservice.address.domain.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

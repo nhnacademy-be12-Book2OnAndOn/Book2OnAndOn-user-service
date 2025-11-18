@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.addres.exception;
+package com.example.book2onandonuserservice.address.exception;
 
 //주소 10개 초과
 public class AddressLimitExceededException extends RuntimeException {

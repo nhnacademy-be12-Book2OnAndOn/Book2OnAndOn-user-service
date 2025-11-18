@@ -109,6 +109,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     }
 
     @Override
+    @Transactional
     public void deleteByUserAddressId(Long userId, Long addressId) {
         Users user = findUserOrThrow(userId);
 

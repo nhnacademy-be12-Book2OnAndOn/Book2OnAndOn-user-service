@@ -39,7 +39,7 @@ public class UserAddressController {
     @GetMapping("/{addressId}")
     public ResponseEntity<UserAddressResponse> getAddressDetails(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @PathVariable Long addressId
+            @Valid @PathVariable Long addressId
     ) {
         UserAddressResponse address = userAddressService.findByUserIdAndAddressId(userId, addressId);
         return ResponseEntity.ok(address);

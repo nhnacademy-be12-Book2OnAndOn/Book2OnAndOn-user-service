@@ -7,16 +7,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "UserGrade")
 public class UserGrade {
@@ -26,9 +24,8 @@ public class UserGrade {
     private Long gradeId;
 
     @NotNull
-    @Column(name = "user_grade_name", unique = true, length = 10)
-    @Size(max = 10)
-    private GradeName grade;
+    @Column(name = "user_grade_name", unique = true, length = 20)
+    private GradeName gradeName;
 
     @NotNull
     @Column(name = "user_point_add_rate")
@@ -37,4 +34,17 @@ public class UserGrade {
     @NotNull
     @Column(name = "grade_cutline")
     private Integer gradeCutline;
+
+    //생성자
+    public UserGrade(GradeName gradeName, Double userPointAddRate, Integer gradeCutline) {
+        this.gradeName = gradeName;
+        this.userPointAddRate = userPointAddRate;
+        this.gradeCutline = gradeCutline;
+    }
+
+    //비즈니스 로직 더디체킹
+    public void updateGradeInfo(Double userPointAddRate, Integer gradeCutline) {
+        this.userPointAddRate = userPointAddRate;
+        this.gradeCutline = gradeCutline;
+    }
 }

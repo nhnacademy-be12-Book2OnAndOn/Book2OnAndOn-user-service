@@ -57,10 +57,6 @@ public class Users {
     private LocalDateTime lastLoginAt;
 
     @NotNull
-    @Column(name = "user_point")
-    private Long point;
-
-    @NotNull
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -84,7 +80,6 @@ public class Users {
         this.nickname = name;
         this.createdAt = LocalDateTime.now();
         this.lastLoginAt = LocalDateTime.now();
-        this.point = 0L;
         this.role = Role.USER;
         this.status = Status.ACTIVE;
         this.userGrade = userGrade;

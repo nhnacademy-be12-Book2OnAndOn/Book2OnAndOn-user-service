@@ -8,10 +8,13 @@ import com.example.book2onandonuserservice.global.dto.ErrorResponseDto;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
 import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
+import com.example.book2onandonuserservice.user.exception.GradeNameDuplicateException;
+import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
+import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
 import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +41,11 @@ public class GlobalExceptionHandler {
             AddressNameDuplicateException.class,
             UserLoginIdDuplicateException.class,
             UserEmailDuplicateException.class,
+            UserNicknameDuplicationException.class,
             PasswordMismatchException.class,
             DuplicatePointPolicyException.class,
-            InvalidPointPolicyException.class
+            InvalidPointPolicyException.class,
+            GradeNameDuplicateException.class
     })
     public ResponseEntity<ErrorResponseDto> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("BAD_REQUEST", ex.getMessage());
@@ -64,7 +69,8 @@ public class GlobalExceptionHandler {
     //404 Not Found
     @ExceptionHandler({UserNotFoundException.class,
             AddressNotFoundException.class,
-            PointPolicyNotFoundException.class})
+            PointPolicyNotFoundException.class,
+            GradeNotFoundException.class})
     public ResponseEntity<ErrorResponseDto> handlerNotFoundException(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("NOT_FOUND", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);

@@ -47,10 +47,29 @@ public class Address {
     @JoinColumn(name = "user_id")
     private Users user;
 
+    @NotNull
+    @Column(name = "user_address_default")
+    private boolean isDefault;
+
+    //빌더 패턴 사용을 위한 isDefault 초기화
+    public Address(String userAddressName, String userAddress, String userAddressDetail, Users user) {
+        this.userAddressName = userAddressName;
+        this.userAddress = userAddress;
+        this.userAddressDetail = userAddressDetail;
+        this.user = user;
+        this.isDefault = false;
+    }
+
     //더티체킹을 위한 매서드
+    //주소 정보 수정
     public void updateAddressInfo(String userAddressName, String userAddress, String userAddressDetail) {
         this.userAddressName = userAddressName;
         this.userAddress = userAddress;
         this.userAddressDetail = userAddressDetail;
+    }
+
+    //대표 주소 상태 변경
+    public void changeDefaultAddress(boolean isDefault) {
+        this.isDefault = isDefault;
     }
 }

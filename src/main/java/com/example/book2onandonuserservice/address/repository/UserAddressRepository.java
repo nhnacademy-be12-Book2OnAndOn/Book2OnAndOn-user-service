@@ -14,4 +14,7 @@ public interface UserAddressRepository extends JpaRepository<Address, Long> {
     List<Address> findAllByUser(Users user);
 
     boolean existsByUserAndUserAddressName(Users user, String userAddressName);
+
+    //(추가)유저의 현재 대표주소 찾기
+    Optional<Address> findByUserAndIsDefaultTrue(Users user);
 }

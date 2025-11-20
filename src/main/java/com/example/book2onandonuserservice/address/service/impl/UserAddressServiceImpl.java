@@ -38,6 +38,7 @@ public class UserAddressServiceImpl implements UserAddressService {
                 .userAddressName(address.getUserAddressName())
                 .userAddress(address.getUserAddress())
                 .userAddressDetail(address.getUserAddressDetail())
+                .isDefault(address.isDefault())
                 .build();
     }
 
@@ -71,17 +72,44 @@ public class UserAddressServiceImpl implements UserAddressService {
         if (userAddressRepository.existsByUserAndUserAddressName(user, request.getUserAddressName())) {
             throw new AddressNameDuplicateException();
         }
+        //저장할 주소가 대표주소일때 기존 대표주소 -> 일반주소로
+        if (request.getIsDefault()) {
+            userAddressRepository.findByUserAndIsDefaultTrue(user)
+                    .ifPresent(oldDefault -> oldDefault.changeDefaultAddress(false));
+        }
+        //첫 주소 생성시 대표주소로 설정
+        boolean isFirstAddress = userAddressRepository.countByUser(user) == 0;
+        boolean shouldBeDefault = request.getIsDefault() || isFirstAddress;
 
         Address address = Address.builder()
                 .user(user)
                 .userAddressName(request.getUserAddressName())
                 .userAddress(request.getUserAddress())
                 .userAddressDetail(request.getUserAddressDetail())
+                .isDefault(shouldBeDefault)
                 .build();
 
         Address savedAddress = userAddressRepository.save(address);
 
         return convertToResponse(savedAddress);
+    }
+
+    @Override
+    @Transactional
+    public void setDefaultAddress(Long userId, Long addressId) {
+        Users user = findUserOrThrow(userId);
+
+        Address newDefault = userAddressRepository.findByUserAndAddressId(user, addressId)
+                .orElseThrow(AddressNotFoundException::new);
+
+        if (newDefault.isDefault()) {
+            return;
+        }
+
+        userAddressRepository.findByUserAndIsDefaultTrue(user)
+                .ifPresent(oldDefault -> oldDefault.changeDefaultAddress(false));
+
+        newDefault.changeDefaultAddress(true);
     }
 
     @Override

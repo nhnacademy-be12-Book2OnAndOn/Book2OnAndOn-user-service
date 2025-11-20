@@ -11,5 +11,6 @@ public class PointPolicyResponseDto {
     private String pointPolicyName;
     private Double pointAddRate;
     private Integer pointAddPoint;
+    private String pointPolicyReason;
 
 }

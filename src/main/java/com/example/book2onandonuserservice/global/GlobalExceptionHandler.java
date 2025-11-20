@@ -5,6 +5,9 @@ import com.example.book2onandonuserservice.address.exception.AddressNameDuplicat
 import com.example.book2onandonuserservice.address.exception.AddressNotFoundException;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponseDto;
+import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
+import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
+import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
@@ -35,7 +38,9 @@ public class GlobalExceptionHandler {
             AddressNameDuplicateException.class,
             UserLoginIdDuplicateException.class,
             UserEmailDuplicateException.class,
-            PasswordMismatchException.class
+            PasswordMismatchException.class,
+            DuplicatePointPolicyException.class,
+            InvalidPointPolicyException.class
     })
     public ResponseEntity<ErrorResponseDto> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("BAD_REQUEST", ex.getMessage());
@@ -57,7 +62,9 @@ public class GlobalExceptionHandler {
     }
 
     //404 Not Found
-    @ExceptionHandler({UserNotFoundException.class, AddressNotFoundException.class})
+    @ExceptionHandler({UserNotFoundException.class,
+            AddressNotFoundException.class,
+            PointPolicyNotFoundException.class})
     public ResponseEntity<ErrorResponseDto> handlerNotFoundException(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("NOT_FOUND", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);

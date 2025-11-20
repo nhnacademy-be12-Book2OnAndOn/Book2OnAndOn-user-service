@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.point.controller;
 
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.PointPolicyUpdateRequestDto;
 import com.example.book2onandonuserservice.point.service.PointPolicyService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,30 +24,37 @@ public class PointPolicyController {
 
     private final PointPolicyService pointPolicyService;
 
-    // 1. 새 포인트 정책 생성 (201)
+    // 1. 정책 생성
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PointPolicyResponseDto setNewPointPolicy(@Valid @RequestBody PointPolicyRequestDto pointPolicyRequestDto) {
-        return pointPolicyService.createPolicy(pointPolicyRequestDto);
+    public PointPolicyResponseDto createPolicy(
+            @Valid @RequestBody PointPolicyRequestDto dto
+    ) {
+        return pointPolicyService.createPolicy(dto);
     }
 
-    // 2. 전체 포인트 정책 목록 조회 (200)
+    // 2. 전체 정책 조회
     @GetMapping
-    public List<PointPolicyResponseDto> checkAllPointPolicies() {
+    public List<PointPolicyResponseDto> getAllPolicies() {
         return pointPolicyService.getAllPolicies();
     }
 
-    // 3. 포인트 정책 단건 조회 (200)
+    // 3. 정책 단건 조회
     @GetMapping("/{policyName}")
-    public PointPolicyResponseDto checkOnePointPolicy(@RequestParam String name) {
-        return pointPolicyService.getPolicyByName(name);
+    public PointPolicyResponseDto getPolicy(
+            @PathVariable String policyName
+    ) {
+        return pointPolicyService.getPolicyByName(policyName);
     }
 
-    // 4. 특정 포인트 정책 수정 (200)
+    // 4. 특정 정책 수정
     @PutMapping("/{policyId}")
-    public PointPolicyResponseDto updatePointPolicy(@PathVariable Long policyId,
-                                                    @Valid @RequestBody PointPolicyRequestDto pointPolicyRequestDto) {
-        return pointPolicyService.updatePolicy(policyId, pointPolicyRequestDto);
+    public PointPolicyResponseDto updatePolicy(
+            @PathVariable Long policyId,
+            @Valid @RequestBody PointPolicyUpdateRequestDto dto
+    ) {
+        return pointPolicyService.updatePolicy(policyId, dto);
     }
-}
 
+    
+}

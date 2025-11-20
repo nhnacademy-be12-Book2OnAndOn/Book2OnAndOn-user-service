@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.point.service;
 
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.PointPolicyUpdateRequestDto;
 import java.util.List;
 
 public interface PointPolicyService {
@@ -12,5 +13,6 @@ public interface PointPolicyService {
 
     PointPolicyResponseDto getPolicyByName(String name);
 
-    PointPolicyResponseDto updatePolicy(Long policyId, PointPolicyRequestDto requestDto);
+    PointPolicyResponseDto updatePolicy(Long policyId, PointPolicyUpdateRequestDto updateRequestDto);
+
 }

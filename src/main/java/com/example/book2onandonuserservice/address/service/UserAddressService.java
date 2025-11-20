@@ -15,4 +15,7 @@ public interface UserAddressService {
     UserAddressResponseDto update(Long userId, Long addressId, UserAddressUpdateRequestDto request);
 
     void deleteByUserAddressId(Long userId, Long addressId);
+
+    //대표 주소 설정 (추가)
+    void setDefaultAddress(Long userId, Long addressId);
 }

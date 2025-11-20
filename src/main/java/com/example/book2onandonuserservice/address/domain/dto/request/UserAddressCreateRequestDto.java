@@ -24,4 +24,10 @@ public class UserAddressCreateRequestDto {
     @Size(max = 100, message = "상세주소는 100자 이내로 작성해주세요")
     private String userAddressDetail;
 
+    private Boolean isDefault;
+
+    public boolean getIsDefault() {
+        return isDefault != null && isDefault;
+    }
+
 }

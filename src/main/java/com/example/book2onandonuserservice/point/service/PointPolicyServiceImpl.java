@@ -2,9 +2,14 @@ package com.example.book2onandonuserservice.point.service;
 
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.PointPolicyResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.PointPolicyUpdateRequestDto;
 import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
+import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
+import com.example.book2onandonuserservice.point.support.pointPolicy.PointPolicyMapper;
+import com.example.book2onandonuserservice.point.support.pointPolicy.PointPolicyValidator;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,55 +20,57 @@ import org.springframework.transaction.annotation.Transactional;
 public class PointPolicyServiceImpl implements PointPolicyService {
 
     private final PointPolicyRepository pointPolicyRepository;
+    private final PointPolicyValidator pointPolicyValidator;
+    private final PointPolicyMapper pointPolicyMapper;
 
-    // 1. 새 포인트 정책 생성
+    // 1. 새 정책 생성
+    @Override
     @Transactional
     public PointPolicyResponseDto createPolicy(PointPolicyRequestDto dto) {
-        PointPolicy policy = PointPolicy.builder()
-                .policyName(dto.getPointPolicyName())
-                .addRate(dto.getPointAddRate())
-                .addPoint(dto.getPointAddPoint())
-                .build();
-        PointPolicy saved = pointPolicyRepository.save(policy);
-        return convertToResponse(saved);
+        pointPolicyValidator.validateReason(dto.getPointPolicyReason());
+        pointPolicyValidator.validateRateAndPoint(dto.getPointAddRate(), dto.getPointAddPoint());
+        pointPolicyValidator.checkDuplicate(dto.getPointPolicyName());
+
+        PointPolicy entity = pointPolicyMapper.toEntity(dto);
+        PointPolicy saved = pointPolicyRepository.save(entity);
+
+        return pointPolicyMapper.toDto(saved);
     }
 
-    // 2. 전체 정책 목록 조회
+    // 2. 정책 전체 조회
+    @Override
     public List<PointPolicyResponseDto> getAllPolicies() {
         return pointPolicyRepository.findAll().stream()
-                .map(this::convertToResponse)
-                .toList();
+                .map(policy -> pointPolicyMapper.toDto(policy))
+                .collect(Collectors.toList());
     }
 
     // 3. 정책 단건 조회
+    @Override
     public PointPolicyResponseDto getPolicyByName(String name) {
         PointPolicy policy = pointPolicyRepository.findByPolicyName(name)
-                .orElseThrow(() -> new IllegalArgumentException("정책 없음: " + name));
-        return convertToResponse(policy);
+                .orElseThrow(() -> new PointPolicyNotFoundException(name));
+        return pointPolicyMapper.toDto(policy);
     }
 
-    // 4. 포인트 정책 수정
+    // 4. 정책 수정(비율/포인트 수정만)
+    @Override
     @Transactional
-    public PointPolicyResponseDto updatePolicy(Long id, PointPolicyRequestDto pointPolicyRequestDto) {
+    public PointPolicyResponseDto updatePolicy(Long id, PointPolicyUpdateRequestDto dto) {
         PointPolicy policy = pointPolicyRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("정책 없음: " + id));
-        if (pointPolicyRequestDto.getPointPolicyName() != null) {
-            policy.setPolicyName(pointPolicyRequestDto.getPointPolicyName());
+                .orElseThrow(() -> new PointPolicyNotFoundException(id));
+
+        pointPolicyValidator.validateRateAndPoint(dto.getPointAddRate(), dto.getPointAddPoint());
+
+        // 비율 수정
+        if (dto.getPointAddRate() != null) {
+            policy.setAddRate(dto.getPointAddRate());
         }
-        policy.setAddRate(pointPolicyRequestDto.getPointAddRate());
-        policy.setAddPoint(pointPolicyRequestDto.getPointAddPoint());
+        // 고정포인트 수정
+        if (dto.getPointAddPoint() != null) {
+            policy.setAddPoint(dto.getPointAddPoint());
+        }
 
-        return convertToResponse(policy);
-    }
-
-    // (보조). Entity -> DTO로 변환
-    private PointPolicyResponseDto convertToResponse(PointPolicy pointPolicy) {
-        return PointPolicyResponseDto.builder()
-                .pointPolicyId(pointPolicy.getPolicyId())
-                .pointPolicyName(pointPolicy.getPolicyName())
-                .pointAddRate(pointPolicy.getAddRate())
-                .pointAddPoint(pointPolicy.getAddPoint())
-                .build();
+        return pointPolicyMapper.toDto(policy);
     }
 }
-

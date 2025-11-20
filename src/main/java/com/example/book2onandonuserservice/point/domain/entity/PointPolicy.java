@@ -26,7 +26,7 @@ public class PointPolicy {
     @Column(name = "point_policy_id")
     private Long policyId;
 
-    @NotNull
+    @NotNull(message = "정책명는 필수입니다")
     @Column(name = "point_policy_name", unique = true, length = 50)
     @Size(max = 50)
     private String policyName;
@@ -36,4 +36,9 @@ public class PointPolicy {
 
     @Column(name = "point_add_point")
     private Integer addPoint;
+
+    @NotNull(message = "정책 사유는 필수입니다")
+    @Column(name = "point_policy_reason")
+    @Size(max = 50)
+    private String policyReason;
 }

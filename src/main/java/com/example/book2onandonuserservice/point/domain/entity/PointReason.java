@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.point.domain.dto;
+package com.example.book2onandonuserservice.point.domain.entity;
 
 public enum PointReason {
     SIGNUP,   // 회원가입

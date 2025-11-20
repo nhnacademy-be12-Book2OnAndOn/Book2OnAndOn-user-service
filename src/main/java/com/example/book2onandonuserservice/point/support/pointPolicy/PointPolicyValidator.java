@@ -1,6 +1,6 @@
 package com.example.book2onandonuserservice.point.support.pointPolicy;
 
-import com.example.book2onandonuserservice.point.domain.dto.PointReason;
+import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;

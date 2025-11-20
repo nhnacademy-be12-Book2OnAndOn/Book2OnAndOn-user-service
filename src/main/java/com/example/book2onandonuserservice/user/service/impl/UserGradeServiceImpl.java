@@ -55,11 +55,4 @@ public class UserGradeServiceImpl implements UserGradeService {
         return UserGradeResponseDto.fromEntity(userGrade);
     }
 
-    @Override
-    @Transactional
-    public void deleteGrade(Long gradeId) {
-        UserGrade userGrade = userGradeRepository.findById(gradeId)
-                .orElseThrow(() -> new GradeNotFoundException(gradeId));
-        userGradeRepository.delete(userGrade);
-    }
 }

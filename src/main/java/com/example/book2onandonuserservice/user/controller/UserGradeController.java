@@ -9,7 +9,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,14 +45,5 @@ public class UserGradeController {
     ) {
         UserGradeResponseDto response = userGradeService.updateGrade(gradeId, request);
         return ResponseEntity.ok(response);
-    }
-
-    //DELETE /{gradeId} 등급 삭제
-    @DeleteMapping("/{gradeId}")
-    public ResponseEntity<UserGradeResponseDto> deleteGrade(
-            @PathVariable Long gradeId
-    ) {
-        userGradeService.deleteGrade(gradeId);
-        return ResponseEntity.noContent().build();
     }
 }

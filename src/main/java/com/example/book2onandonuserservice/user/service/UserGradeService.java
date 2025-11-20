@@ -14,7 +14,4 @@ public interface UserGradeService {
 
     //(admin) 등급 정책 수정
     UserGradeResponseDto updateGrade(Long gradeId, UserGradeUpdateRequestDto request);
-
-    //(admin) 등급 삭제
-    void deleteGrade(Long gradeId);
 }

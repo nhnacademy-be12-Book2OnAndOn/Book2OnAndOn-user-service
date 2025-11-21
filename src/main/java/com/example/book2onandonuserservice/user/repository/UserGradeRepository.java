@@ -12,5 +12,5 @@ public interface UserGradeRepository extends JpaRepository<UserGrade, Long> {
     boolean existsByGradeName(GradeName gradeName);
 
     //등급 기준금액이 높은 순서대로 조회
-    List<UserGrade> findAllByGradeCutline();
+    List<UserGrade> findAllByOrderByGradeCutlineDesc();
 }

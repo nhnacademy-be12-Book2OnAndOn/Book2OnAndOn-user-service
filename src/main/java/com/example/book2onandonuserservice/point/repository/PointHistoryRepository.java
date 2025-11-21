@@ -1,13 +1,11 @@
 package com.example.book2onandonuserservice.point.repository;
 
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
-import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
 
@@ -21,6 +19,6 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     List<PointHistory> findByOrderItemId(Long orderItemId);
 
     // 정책 조회용
-    Optional<PointPolicy> findByPolicyName(String policyName);
+    Optional<PointHistory> findByPointHistoryReason(String policyName);
 }
 

@@ -118,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public TokenResponseDto login(LoginRequestDto request) {
         //인증 정보 조회
-        UserAuth userAuth = userAuthRepository.findByProviderAndProviderUserId(LOCAL_PROVIDER, request.username())
+        UserAuth userAuth = userAuthRepository.findByProviderAndProviderUserId(LOCAL_PROVIDER, request.userId())
                 .orElseThrow(AuthenticationFailedException::new);
 
         Users user = userAuth.getUser();

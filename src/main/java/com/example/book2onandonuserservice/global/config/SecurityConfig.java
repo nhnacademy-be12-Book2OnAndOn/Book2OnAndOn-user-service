@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.user.config;
+package com.example.book2onandonuserservice.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +25,8 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable) //JWT에서는 불필요한 CSRF 보안을 끔
                 .formLogin(AbstractHttpConfigurer::disable) //기본 로그인폼을 끔
                 .httpBasic(AbstractHttpConfigurer::disable) //HTTP Basic 인증을 끔
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()); //모든 요청 허용(인증은 Gateway)
+                .authorizeHttpRequests(auth -> auth.anyRequest()
+                        .permitAll()); //모든 요청 허용(인증은 Gateway)
 
         return http.build();
     }

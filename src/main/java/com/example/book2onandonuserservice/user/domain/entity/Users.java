@@ -39,12 +39,10 @@ public class Users {
     @Size(max = 50)
     private String name;
 
-    @Column(name = "user_email", unique = true, length = 255)
-    @Size(max = 30)
+    @Column(name = "user_email", unique = true, length = 320)
     private String email;
 
     @Column(name = "user_phone", length = 11)
-    @Size(max = 11)
     private String phone;
 
     @Column(name = "user_birth")
@@ -67,8 +65,10 @@ public class Users {
     private Status status;
 
     @Column(name = "user_nickname", unique = true, length = 20, nullable = false)
-    @Size(max = 10)
     private String nickname;
+
+    @Column(name = "user_withdrawn_at")
+    private LocalDateTime withdrawnAt;
 
     @NotNull
     @ManyToOne
@@ -124,9 +124,11 @@ public class Users {
     //회원 탈퇴
     public void withDraw() {
         this.status = Status.CLOSED;
-        this.name = "Unknown";
-        this.email = null;
+        this.withdrawnAt = LocalDateTime.now();
+        this.name = "탈퇴회원";
+        this.email = "withdrawn_" + this.userId; //Unique 제약조건을 피하기 위함
         this.phone = null;
+        this.email = null;
     }
 
 

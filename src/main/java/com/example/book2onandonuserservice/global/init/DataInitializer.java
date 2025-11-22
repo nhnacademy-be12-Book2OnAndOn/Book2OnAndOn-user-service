@@ -25,7 +25,7 @@ public class DataInitializer {
                 userGradeRepository.save(basic);
 
                 userGradeRepository.save(new UserGrade(GradeName.ROYAL, 0.02, 100000));
-                userGradeRepository.save(new UserGrade(GradeName.GOLD, 0.02, 200000));
+                userGradeRepository.save(new UserGrade(GradeName.GOLD, 0.025, 200000));
                 userGradeRepository.save(new UserGrade(GradeName.PLATINUM, 0.03, 300000));
 
                 System.out.println("=============== [Init] 테스트용 등급 데이터 생성 완료 ===============");

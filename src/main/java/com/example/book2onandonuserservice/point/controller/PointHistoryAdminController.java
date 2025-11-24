@@ -5,7 +5,6 @@ import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPoin
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
-import com.example.book2onandonuserservice.point.support.AdminAuthorization;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,21 +24,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class PointHistoryAdminController {
 
     private final PointHistoryService pointHistoryService;
-    private final AdminAuthorization adminAuthorization;
-
     private static final String USER_ID_HEADER = "X-USER-ID";
-    private static final String USER_ROLE_HEADER = "X-USER-ROLE";
 
     // 1. (관리자) 특정 유저의 포인트 전체 이력 조회
     // GET /admin/points?userId=1
     @GetMapping
     public Page<PointHistoryResponseDto> getUserPointHistory(
             @RequestHeader(USER_ID_HEADER) Long adminUserId, // adminUserId: 이 API를 호출한 관리자 ID
-            @RequestHeader(USER_ROLE_HEADER) String role, // userId: 조회 대상 회원 ID
             @RequestParam Long userId,
             @PageableDefault(page = 0, size = 10) Pageable pageable
     ) {
-        adminAuthorization.requirePointAdmin(role);
         return pointHistoryService.getMyPointHistory(userId, pageable);
     }
 
@@ -48,10 +42,8 @@ public class PointHistoryAdminController {
     @GetMapping("/current")
     public CurrentPointResponseDto getUserCurrentPoint(
             @RequestHeader(USER_ID_HEADER) Long adminUserId,
-            @RequestHeader(USER_ROLE_HEADER) String role,
             @RequestParam Long userId
     ) {
-        adminAuthorization.requirePointAdmin(role);
         return pointHistoryService.getMyCurrentPoint(userId);
     }
 
@@ -60,10 +52,8 @@ public class PointHistoryAdminController {
     @PostMapping("/adjust")
     public EarnPointResponseDto adjustPointByAdmin(
             @RequestHeader(USER_ID_HEADER) Long adminUserId,
-            @RequestHeader(USER_ROLE_HEADER) String role,
             @Valid @RequestBody PointHistoryAdminAdjustRequestDto requestDto
     ) {
-        adminAuthorization.requirePointAdmin(role);
         // requestDto.getUserId() : 포인트 조정 대상 회원
         // adminUserId           : 이 조정을 실행한 관리자
         return pointHistoryService.adjustPointByAdmin(requestDto);

@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.point.domain.dto;
+package com.example.book2onandonuserservice.point.domain.dto.request;
 
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Getter;

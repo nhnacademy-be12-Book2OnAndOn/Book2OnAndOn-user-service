@@ -108,7 +108,7 @@ public class PointHistoryUserController {
         return pointHistoryService.refundPoint(dto);
     }
 
-    // 6. 포인트 만료 처리 (해당 유저에 대해 즉시 만료 처리)
+    // 6. 포인트 만료 처리 (해당 유저에 대해 만료일자가 지난 포인트들을 즉시 만료 처리)
     // POST /users/me/points/expire?userId=1
     @PostMapping("/expire")
     public ResponseEntity<Void> expirePoints(@RequestHeader(USER_ID_HEADER) Long userId) {

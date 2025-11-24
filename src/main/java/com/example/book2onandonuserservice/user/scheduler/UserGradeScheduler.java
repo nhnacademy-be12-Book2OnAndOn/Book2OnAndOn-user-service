@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserGradeScheduler {
     private final UsersRepository usersRepository;
     private final UserGradeRepository userGradeRepository;
-    private UserGradeHistoryRepository userGradeHistoryRepository;
+    private final UserGradeHistoryRepository userGradeHistoryRepository;
     private final OrderServiceClient orderServiceClient;
 
     @Scheduled(cron = "0 0 4 1 1,4,7,10 *") //1,4,7,10월 1일 4시정각
@@ -45,7 +45,7 @@ public class UserGradeScheduler {
         List<Users> activeUsers = usersRepository.findAllByStatus(Status.ACTIVE);
 
         int updateCount = 0;
-        int failCount = -0;
+        int failCount = 0;
 
         //해당기간 순수 주문금액 조회
         //조회 실패시, 건너뛰고 로그를 남김

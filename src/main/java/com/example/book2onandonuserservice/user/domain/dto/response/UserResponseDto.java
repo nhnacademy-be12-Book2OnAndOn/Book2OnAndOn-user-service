@@ -24,7 +24,7 @@ public record UserResponseDto(
                 .phone(user.getPhone())
                 .nickname(user.getNickname())
                 .role(user.getRole())
-                .gradeName(user.getUserGrade().toString())
+                .gradeName(user.getUserGrade().getGradeName().name())
                 .build();
     }
 }

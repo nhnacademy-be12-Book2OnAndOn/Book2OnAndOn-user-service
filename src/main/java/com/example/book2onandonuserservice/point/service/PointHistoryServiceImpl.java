@@ -1,9 +1,9 @@
 package com.example.book2onandonuserservice.point.service;
 
 import com.example.book2onandonuserservice.point.domain.dto.PointHistoryResponseDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointReason;
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
+import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.repository.PointHistoryRepository;
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
@@ -11,7 +11,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,17 +1,26 @@
 package com.example.book2onandonuserservice.point.service;
 
-import com.example.book2onandonuserservice.point.domain.dto.PointHistoryResponseDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointReason;
+import com.example.book2onandonuserservice.point.domain.dto.request.EarnOrderPointRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.EarnReviewPointRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.PointHistoryAdminAdjustRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.RefundPointRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.UsePointRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
-import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
+import com.example.book2onandonuserservice.point.domain.entity.PointReason;
+import com.example.book2onandonuserservice.point.domain.entity.PointReviewType;
+import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
+import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
 import com.example.book2onandonuserservice.point.repository.PointHistoryRepository;
-import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
+import com.example.book2onandonuserservice.point.support.pointHistory.PointCalculationHelper;
+import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryMapper;
+import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryValidator;
+import com.example.book2onandonuserservice.point.support.pointHistory.UserReferenceLoader;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import java.time.LocalDateTime;
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,214 +33,422 @@ import org.springframework.transaction.annotation.Transactional;
 public class PointHistoryServiceImpl implements PointHistoryService {
 
     private final PointHistoryRepository pointHistoryRepository;
-    private final PointPolicyRepository pointPolicyRepository;
+    private final UserReferenceLoader userReferenceLoader;
+    private final PointCalculationHelper pointCalculationHelper;
+    private final PointHistoryMapper pointHistoryMapper;
+    private final PointHistoryValidator pointHistoryValidator;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    // 1. 포인트 전체 내역 조회
-    @Transactional(readOnly = true)
-    @Override
-    public Page<PointHistoryResponseDto> getMyPointHistory(Long userId, Pageable pageable) {
-        Page<PointHistory> page = pointHistoryRepository.findAllByUserUserId(userId, pageable);
-        return page.map(this::toDto);
-    }
-
-    // 2. 현재 보유 포인트 (최신 1건 기준)
-    @Transactional(readOnly = true)
-    @Override
-    public PointHistoryResponseDto getMyCurrentPoint(Long userId) {
-        PointHistory latest = pointHistoryRepository
+    // ===== 공통 유틸 =====
+    // 1. 현재 보유 포인트 숫자만 필요할 때 사용하는 내부 헬퍼
+    private int getLatestTotal(Long userId) {
+        return pointHistoryRepository
                 .findTop1ByUserUserIdOrderByPointCreatedDateDesc(userId)
-                .orElseThrow(() -> new IllegalArgumentException("포인트 이력이 없습니다. userId=" + userId));
-        return toDto(latest);
+                .map(PointHistory::getTotalPoints)
+                .orElse(0);
     }
 
-    // 3. 포인트 적립
-    // 3-1. 회원가입 포인트 적립 (고정 5000)
-    @Override
-    public void earnSignupPoint(Long userId) {
-        Users userRef = entityManager.getReference(Users.class, userId);
-        earnPointInternal(userId, userRef, PointReason.SIGNUP, null, null, null, null);
+    // 2. 포인트 적립 시 만료일 계산 (기본 1년 뒤)
+    private LocalDateTime getDefaultExpireAt() {
+        return LocalDateTime.now().plusYears(1);
+//        return LocalDateTime.now().minusDays(1); // 만료일자 지난 포인트 처리 테스트용
     }
 
-    // 3-2. 리뷰 작성 포인트 적립 (고정 500)
+    // ===== User =====
+    // 1. 포인트 전체 내역 조회 (마이페이지)
     @Override
-    public void earnReviewPoint(Long userId, Long reviewId) {
-        Users userRef = entityManager.getReference(Users.class, userId);
-        earnPointInternal(userId, userRef, PointReason.REVIEW, null, null, reviewId, null);
+    @Transactional(readOnly = true)
+    public Page<PointHistoryResponseDto> getMyPointHistory(Long userId, Pageable pageable) {
+        Page<PointHistory> page =
+                pointHistoryRepository.findAllByUserUserIdOrderByPointCreatedDateDesc(userId, pageable);
+        return page.map(pointHistoryMapper::toDto);
     }
 
-    // 3-3. 도서 결제 포인트 적립 (적립률)
+    // 2. 현재 보유 포인트 조회
     @Override
-    public void earnOrderPoint(Long userId, Long orderItemId, int orderAmount) {
-        Users userRef = entityManager.getReference(Users.class, userId);
-        earnPointInternal(userId, userRef, PointReason.ORDER, orderAmount, orderItemId, null, null);
+    @Transactional(readOnly = true)
+    public CurrentPointResponseDto getMyCurrentPoint(Long userId) {
+        int latestTotal = getLatestTotal(userId);
+        return new CurrentPointResponseDto(latestTotal);
+    }
+
+    // 3-1. 회원가입 적립
+    @Override
+    public EarnPointResponseDto earnSignupPoint(Long userId) {
+        Users user = userReferenceLoader.getReference(userId);
+        int latestTotal = getLatestTotal(userId);
+
+        // 유저의 회원가입 유무 판별
+        boolean existsSignup = pointHistoryRepository.existsByUserUserIdAndPointReason(userId, PointReason.SIGNUP);
+        if (existsSignup) {
+//            return new EarnPointResponseDto(0, latestTotal, PointReason.SIGNUP); -> 이미 회원가입된 유저일 경우, 0포인트 지급
+            throw new SignupPointAlreadyGrantedException(userId); // -> 예외처리
+        }
+        // 정책이 비활성화거나, 적립포인트 0일 경우 적립 x
+        int change = pointCalculationHelper.calculateByReason(PointReason.SIGNUP, null);
+        if (change <= 0) {
+            return new EarnPointResponseDto(0, latestTotal, PointReason.SIGNUP);
+        }
+
+        int newTotal = latestTotal + change;
+
+        PointHistory history = pointHistoryMapper.toEarnEntity(
+                user,
+                PointReason.SIGNUP,
+                change,
+                newTotal,
+                null, // orderItemId
+                null, // reviewId
+                null, // returnId
+                getDefaultExpireAt()
+        );
+        pointHistoryRepository.save(history);
+
+        return new EarnPointResponseDto(change, newTotal, PointReason.SIGNUP);
+    }
+
+    // 3-2. 리뷰 작성 적립 (일반 / 사진)
+    @Override
+    public EarnPointResponseDto earnReviewPoint(EarnReviewPointRequestDto dto) {
+
+        Long userId = dto.getUserId();
+        Long reviewId = dto.getReviewId();
+        Long orderItemId = dto.getOrderItemId();
+        PointReviewType reviewType = dto.getReviewType();
+
+        // 1) 리뷰 중복 적립 방지
+        pointHistoryValidator.validateReviewNotDuplicated(reviewId);
+
+        Users user = userReferenceLoader.getReference(userId);
+        int latestTotal = getLatestTotal(userId);
+
+        // 2) 리뷰 타입에 따른 정책명 결정
+        String policyName = switch (reviewType) {
+            case PHOTO -> "REVIEW_PHOTO";
+            case TEXT -> "REVIEW_TEXT";
+        };
+
+        int change = pointCalculationHelper.calculateByPolicyName(policyName, null);
+        if (change <= 0) {
+            return new EarnPointResponseDto(0, latestTotal, PointReason.REVIEW);
+        }
+
+        int newTotal = latestTotal + change;
+
+        PointHistory history = pointHistoryMapper.toEarnEntity(
+                user,
+                PointReason.REVIEW,
+                change,
+                newTotal,
+                orderItemId,
+                reviewId,
+                null,
+                getDefaultExpireAt()
+        );
+        pointHistoryRepository.save(history);
+
+        return new EarnPointResponseDto(change, newTotal, PointReason.REVIEW);
+    }
+
+    // 3-3. 도서 결제 적립 (기본 적립률)
+    @Override
+    public EarnPointResponseDto earnOrderPoint(EarnOrderPointRequestDto dto) {
+
+        Long userId = dto.getUserId();
+        Long orderItemId = dto.getOrderItemId();
+        int orderAmount = dto.getOrderAmount();
+
+        pointHistoryValidator.validateOrderEarnNotDuplicated(orderItemId);
+        pointHistoryValidator.validatePositiveAmount(orderAmount, "주문 금액은 0보다 커야 합니다.");
+
+        Users user = userReferenceLoader.getReference(userId);
+        int latestTotal = getLatestTotal(userId);
+
+        // 정책명: ORDER (결제 금액 × 기본 적립률)
+        int change = pointCalculationHelper.calculateByReason(PointReason.ORDER, orderAmount);
+        if (change <= 0) {
+            return new EarnPointResponseDto(0, latestTotal, PointReason.ORDER);
+        }
+
+        int newTotal = latestTotal + change;
+
+        PointHistory history = pointHistoryMapper.toEarnEntity(
+                user,
+                PointReason.ORDER,
+                change,
+                newTotal,
+                orderItemId,
+                null,
+                null,
+                getDefaultExpireAt()
+        );
+        pointHistoryRepository.save(history);
+
+        return new EarnPointResponseDto(change, newTotal, PointReason.ORDER);
+    }
+
+    // 3-4. 등급 적립 (내부용)
+    @Override
+    public void earnGradePoint(Long userId, int pureAmount, double gradeRewardRate) {
+        pointHistoryValidator.validatePositiveAmount(pureAmount, "순수금액은 0보다 커야 합니다.");
+        if (gradeRewardRate <= 0) {
+            return;
+        }
+
+        Users user = userReferenceLoader.getReference(userId);
+        int latestTotal = getLatestTotal(userId);
+
+        int change = (int) Math.round(pureAmount * gradeRewardRate);
+        if (change <= 0) {
+            return;
+        }
+
+        int newTotal = latestTotal + change;
+
+        PointHistory history = pointHistoryMapper.toEarnEntity(
+                user,
+                PointReason.ORDER,   // 등급 적립도 주문 관련 적립으로 보는 구조
+                change,
+                newTotal,
+                null,
+                null,
+                null,
+                getDefaultExpireAt()
+        );
+        pointHistoryRepository.save(history);
     }
 
     // 4. 포인트 사용
     @Override
-    public void usePoint(Long userId, Long orderItemId, int useAmount) {
-        if (useAmount <= 0) {
-            throw new IllegalArgumentException("사용 포인트는 0보다 커야 합니다.");
-        }
-        int latestTotal = pointHistoryRepository
-                .findTop1ByUserUserIdOrderByPointCreatedDateDesc(userId)
-                .map(PointHistory::getTotalPoints)
-                .orElse(0);
+    public EarnPointResponseDto usePoint(UsePointRequestDto dto) {
+
+        Long userId = dto.getUserId();
+        Long orderItemId = dto.getOrderItemId();
+        int useAmount = dto.getUseAmount();
+        int allowedMaxUseAmount = dto.getAllowedMaxUseAmount();
+
+        // 1) 주문에서 허용한 최대 사용 가능 포인트 범위 검증
+        pointHistoryValidator.validatePointRange(useAmount, allowedMaxUseAmount);
+
+        // 2) 양수 검증
+        pointHistoryValidator.validatePositiveAmount(useAmount, "사용 포인트는 0보다 커야 합니다.");
+
+        // 3) 같은 주문에 대한 중복 사용 방지
+        pointHistoryValidator.validateUseNotDuplicated(orderItemId);
+
+        int latestTotal = getLatestTotal(userId);
         if (latestTotal < useAmount) {
-            throw new IllegalStateException("보유 포인트가 부족합니다. 현재=" + latestTotal + ", 요청=" + useAmount);
+            throw new InsufficientPointException(latestTotal, useAmount);
         }
 
-        Users userRef = entityManager.getReference(Users.class, userId);
+        Users user = userReferenceLoader.getReference(userId);
+
+        // 4) FIFO 방식으로 remaining_point 차감
+        int remainToUse = useAmount;
+        List<PointHistory> earnRows =
+                pointHistoryRepository.findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThanOrderByPointCreatedDateAsc(
+                        userId,
+                        0,
+                        0
+                );
+
+        for (PointHistory row : earnRows) {
+            if (remainToUse <= 0) {
+                break;
+            }
+            Integer remaining = row.getRemainingPoint();
+            if (remaining == null || remaining <= 0) {
+                continue;
+            }
+
+            int usedHere = Math.min(remaining, remainToUse);
+            row.setRemainingPoint(remaining - usedHere);
+            remainToUse -= usedHere;
+        }
+
+        if (remainToUse > 0) {
+            throw new IllegalStateException("remaining_point 합계가 부족합니다. 데이터 정합성을 확인하세요.");
+        }
+
+        // 5) 사용 이력 row 생성
         int newTotal = latestTotal - useAmount;
-        PointHistory history = PointHistory.builder()
-                .pointHistoryChange(-useAmount)
-                .totalPoints(newTotal)
-                .pointHistoryReason(PointReason.USE.name())
-                .pointCreatedDate(LocalDateTime.now())
-                .pointExpiredDate(LocalDateTime.now())
-                .user(userRef)
-                .orderItemId(orderItemId)
-                .build();
-        pointHistoryRepository.save(history);
+        PointHistory useHistory = pointHistoryMapper.toUseOrDeductEntity(
+                user,
+                PointReason.USE,
+                -useAmount,
+                newTotal,
+                orderItemId,
+                null,
+                null
+        );
+        pointHistoryRepository.save(useHistory);
+
+        return new EarnPointResponseDto(-useAmount, newTotal, PointReason.USE);
     }
 
-    // 5. 포인트 반환 (주문 취소/반품)
+    // 5. 포인트 반환 (결제취소/반품)
     @Override
-    public void refundPoint(Long userId, Long orderItemId) {
-        List<PointHistory> histories = pointHistoryRepository.findByOrderItemId(orderItemId);
-        if (histories.isEmpty()) {
-            return; // 이 주문에서 포인트를 건드린 적이 없으면 반환할 것도 없음
+    public EarnPointResponseDto refundPoint(RefundPointRequestDto dto) {
+
+        Long userId = dto.getUserId();
+        Long orderItemId = dto.getOrderItemId();
+        Long returnId = dto.getReturnId();
+        int usedPoint = dto.getUsedPoint() != null ? dto.getUsedPoint() : 0;
+        int returnAmount = dto.getReturnAmount() != null ? dto.getReturnAmount() : 0;
+
+        // 동일 returnId 중복 처리 방지
+        pointHistoryValidator.validateReturnNotDuplicated(returnId);
+
+        Users user = userReferenceLoader.getReference(userId);
+        int beforeTotal = getLatestTotal(userId);
+        int latestTotal = beforeTotal;
+
+        // 5-1. 사용 포인트 복구 (+usedPoint)
+        if (usedPoint > 0) {
+            pointHistoryValidator.validatePositiveAmount(usedPoint, "복구 포인트는 0보다 커야 합니다.");
+
+            int newTotal = latestTotal + usedPoint;
+            PointHistory restoreHistory = pointHistoryMapper.toEarnEntity(
+                    user,
+                    PointReason.REFUND,
+                    usedPoint,
+                    newTotal,
+                    orderItemId,
+                    null,
+                    returnId,
+                    getDefaultExpireAt()
+            );
+            pointHistoryRepository.save(restoreHistory);
+            latestTotal = newTotal;
         }
 
-        // 이 주문으로 인한 포인트 변화 합계 (예: +1000 적립, -3000 사용 → 합계 -2000)
-        int delta = histories.stream()
+        // 5-2. 반품 금액만큼 포인트 적립 (+returnAmount)
+        if (returnAmount > 0) {
+            pointHistoryValidator.validatePositiveAmount(returnAmount, "반품 금액은 0보다 커야 합니다.");
+
+            int newTotal = latestTotal + returnAmount;
+            PointHistory refundAmountHistory = pointHistoryMapper.toEarnEntity(
+                    user,
+                    PointReason.REFUND,
+                    returnAmount,
+                    newTotal,
+                    orderItemId,
+                    null,
+                    returnId,
+                    getDefaultExpireAt()
+            );
+            pointHistoryRepository.save(refundAmountHistory);
+            latestTotal = newTotal;
+        }
+
+        // 5-3. 이 주문에 대해 적립되었던 리뷰 포인트 회수
+        List<PointHistory> orderHistories = pointHistoryRepository.findByOrderItemId(orderItemId);
+        int reviewEarnSum = orderHistories.stream()
+                .filter(h -> h.getPointReason() == PointReason.REVIEW && h.getPointHistoryChange() > 0)
                 .mapToInt(PointHistory::getPointHistoryChange)
                 .sum();
-        if (delta == 0) {
+
+        if (reviewEarnSum > 0) {
+            int newTotal = latestTotal - reviewEarnSum;
+            PointHistory cancelReviewHistory = pointHistoryMapper.toUseOrDeductEntity(
+                    user,
+                    PointReason.REFUND,   // 회수도 REFUND 범주로 기록
+                    -reviewEarnSum,
+                    newTotal,
+                    orderItemId,
+                    null,
+                    returnId
+            );
+            pointHistoryRepository.save(cancelReviewHistory);
+            latestTotal = newTotal;
+        }
+
+        int netChange = latestTotal - beforeTotal;
+        return new EarnPointResponseDto(netChange, latestTotal, PointReason.REFUND);
+    }
+
+    // 6. 포인트 만료 처리
+    @Override
+    public void expirePoints(Long userId) {
+        List<PointHistory> expiredRows = pointHistoryValidator.getExpiredEarnRows(userId);
+        if (expiredRows.isEmpty()) {
             return;
         }
 
-        int latestTotal = pointHistoryRepository
-                .findTop1ByUserUserIdOrderByPointCreatedDateDesc(userId)
-                .map(PointHistory::getTotalPoints)
-                .orElse(0);
-        // 합계를 뒤집어서 상쇄하는 방향으로 기록
-        int change = -delta;                 // delta가 +면 -, delta가 -면 +
-        int newTotal = latestTotal + change; // 최종 잔액
+        int expireTotal = expiredRows.stream()
+                .mapToInt(row -> row.getRemainingPoint() == null ? 0 : row.getRemainingPoint())
+                .sum();
 
-        Users userRef = entityManager.getReference(Users.class, userId);
+        if (expireTotal <= 0) {
+            return;
+        }
 
-        PointHistory history = PointHistory.builder()
-                .pointHistoryChange(change)
-                .totalPoints(newTotal)
-                .pointHistoryReason(PointReason.REFUND.name())   // "REFUND"
-                .pointCreatedDate(LocalDateTime.now())
-                .pointExpiredDate(LocalDateTime.now())
-                .user(userRef)
-                .orderItemId(orderItemId)
-                .build();
+        // 각 row의 remaining_point 를 0으로
+        for (PointHistory row : expiredRows) {
+            row.setRemainingPoint(0);
+        }
 
-        pointHistoryRepository.save(history);
+        int latestTotal = getLatestTotal(userId);
+        int newTotal = latestTotal - expireTotal;
+
+        Users user = userReferenceLoader.getReference(userId);
+
+        PointHistory expireHistory = pointHistoryMapper.toUseOrDeductEntity(
+                user,
+                PointReason.EXPIRE,
+                -expireTotal,
+                newTotal,
+                null,
+                null,
+                null
+        );
+        pointHistoryRepository.save(expireHistory);
     }
 
-    // 6. 포인트 만료 처리 (단순: 현재 잔액 전체 소멸)
+    // 7. 관리자 수동 포인트 지급/차감
     @Override
-    public void expirePoints(Long userId) {
-        int latestTotal = pointHistoryRepository
-                .findTop1ByUserUserIdOrderByPointCreatedDateDesc(userId)
-                .map(PointHistory::getTotalPoints)
-                .orElse(0);
+    public EarnPointResponseDto adjustPointByAdmin(PointHistoryAdminAdjustRequestDto requestDto) {
+        Long userId = requestDto.getUserId();
+        int amount = requestDto.getAmount();
 
-        if (latestTotal <= 0) {
-            return; // 잔액이 없으면 소멸할 것도 없음
+        if (amount == 0) {
+            throw new IllegalArgumentException("조정 포인트는 0일 수 없습니다.");
         }
 
-        Users userRef = entityManager.getReference(Users.class, userId);
+        pointHistoryValidator.validatePositiveAmount(Math.abs(amount), "조정 포인트는 0보다 커야 합니다.");
 
-        PointHistory history = PointHistory.builder()
-                .pointHistoryChange(-latestTotal)               // 전액 소멸
-                .totalPoints(0)
-                .pointHistoryReason(PointReason.EXPIRE.name())  // "EXPIRE"
-                .pointCreatedDate(LocalDateTime.now())
-                .pointExpiredDate(LocalDateTime.now())
-                .user(userRef)
-                .build();
+        int latestTotal = getLatestTotal(userId);
+        int newTotal = latestTotal + amount;
+        if (newTotal < 0) {
+            throw new IllegalStateException("조정 후 포인트가 음수가 될 수 없습니다.");
+        }
 
+        Users user = userReferenceLoader.getReference(userId);
+
+        PointHistory history;
+        if (amount > 0) {
+            history = pointHistoryMapper.toEarnEntity(
+                    user,
+                    PointReason.ADMIN_ADJUST,
+                    amount,
+                    newTotal,
+                    null,
+                    null,
+                    null,
+                    getDefaultExpireAt()
+            );
+        } else {
+            history = pointHistoryMapper.toUseOrDeductEntity(
+                    user,
+                    PointReason.ADMIN_ADJUST,
+                    amount,
+                    newTotal,
+                    null,
+                    null,
+                    null
+            );
+        }
         pointHistoryRepository.save(history);
-    }
 
-    // (참고) Users 프록시 가져오는 헬퍼
-    private Users getUserRef(Long userId) {
-        return entityManager.getReference(Users.class, userId);
-    }
-
-    // 내부 공통 적립 로직
-    private void earnPointInternal(Long userId,
-                                   Users userRef,
-                                   PointReason reason,
-                                   Integer baseAmount,
-                                   Long orderItemId,
-                                   Long reviewId,
-                                   Long returnId) {
-
-        // 1) 정책 조회 (policyName = SIGNUP / REVIEW / ORDER)
-        PointPolicy policy = pointPolicyRepository.findByPolicyName(reason.name())
-                .orElseThrow(() -> new IllegalStateException("포인트 정책이 정의되지 않았습니다. reason=" + reason));
-
-        // 2) 이번에 적립할 포인트 계산
-        int changePoint = calculatePoint(policy, baseAmount);
-
-        // 3) 현재 총 포인트 가져오기 (이력이 없으면 0)
-        int latestTotal = pointHistoryRepository
-                .findTop1ByUserUserIdOrderByPointCreatedDateDesc(userId)
-                .map(PointHistory::getTotalPoints)
-                .orElse(0);
-
-        int newTotal = latestTotal + changePoint;
-
-        // 4) PointHistory 엔티티 저장
-        PointHistory history = PointHistory.builder()
-                .pointHistoryChange(changePoint)
-                .totalPoints(newTotal)
-                .pointHistoryReason(reason.name())                // SIGNUP / REVIEW / ORDER 등
-                .pointCreatedDate(LocalDateTime.now())
-                .pointExpiredDate(LocalDateTime.now().plusYears(1)) // 예: 1년 뒤 만료
-                .user(userRef)                                    // Users 엔티티 프록시
-                .orderItemId(orderItemId)
-                .reviewId(reviewId)
-                .returnEntity(returnId)
-                .build();
-
-        pointHistoryRepository.save(history);
-    }
-
-    // 정책에 따른 포인트 계산: 고정 / 적립률
-    private int calculatePoint(PointPolicy policy, Integer baseAmount) {
-        if (policy.getAddPoint() != null) {            // 고정 포인트
-            return policy.getAddPoint();
-        }
-        if (policy.getAddRate() != null) {             // 적립률
-            if (baseAmount == null) {
-                throw new IllegalArgumentException("적립률 정책에는 baseAmount(주문 금액)가 필요합니다.");
-            }
-            return (int) Math.round(baseAmount * policy.getAddRate());
-        }
-        throw new IllegalStateException("포인트 정책 설정이 잘못되었습니다. id=" + policy.getPolicyId());
-    }
-
-    // Entity → DTO 변환
-    private PointHistoryResponseDto toDto(PointHistory entity) {
-        return PointHistoryResponseDto.builder()
-                .pointHistoryId(entity.getPointHistoryId())
-                .pointHistoryChange(entity.getPointHistoryChange())
-                .totalPoints(entity.getTotalPoints())
-                .pointHistoryReason(entity.getPointHistoryReason())
-                .pointCreatedDate(entity.getPointCreatedDate())
-                .pointExpiredDate(entity.getPointExpiredDate())
-                .orderItemId(entity.getOrderItemId())
-                .reviewId(entity.getReviewId())
-                .build();
+        return new EarnPointResponseDto(amount, newTotal, PointReason.ADMIN_ADJUST);
     }
 }

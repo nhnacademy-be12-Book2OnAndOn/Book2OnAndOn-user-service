@@ -6,8 +6,18 @@ import com.example.book2onandonuserservice.address.exception.AddressNotFoundExce
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponseDto;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
+import com.example.book2onandonuserservice.point.exception.InactivePointPolicyException;
+import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
+import com.example.book2onandonuserservice.point.exception.InvalidAuthenticationException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
+import com.example.book2onandonuserservice.point.exception.OrderAlreadyRewardedException;
+import com.example.book2onandonuserservice.point.exception.PointAlreadyUsedForOrderException;
 import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
+import com.example.book2onandonuserservice.point.exception.PointRangeExceededException;
+import com.example.book2onandonuserservice.point.exception.ReturnAlreadyProcessedException;
+import com.example.book2onandonuserservice.point.exception.ReviewAlreadyRewardedException;
+import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
+import com.example.book2onandonuserservice.point.exception.UserIdMismatchException;
 import com.example.book2onandonuserservice.user.exception.GradeNameDuplicateException;
 import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
@@ -43,9 +53,18 @@ public class GlobalExceptionHandler {
             UserEmailDuplicateException.class,
             UserNicknameDuplicationException.class,
             PasswordMismatchException.class,
+            GradeNameDuplicateException.class,
+
             DuplicatePointPolicyException.class,
             InvalidPointPolicyException.class,
-            GradeNameDuplicateException.class
+            UserIdMismatchException.class,
+            OrderAlreadyRewardedException.class,
+            ReviewAlreadyRewardedException.class,
+            ReturnAlreadyProcessedException.class,
+            PointRangeExceededException.class,
+            PointAlreadyUsedForOrderException.class,
+            InsufficientPointException.class,
+            InactivePointPolicyException.class
     })
     public ResponseEntity<ErrorResponseDto> handleBadRequestExceptions(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("BAD_REQUEST", ex.getMessage());
@@ -53,27 +72,42 @@ public class GlobalExceptionHandler {
     }
 
     //401 Unauthorized
-    @ExceptionHandler(AuthenticationFailedException.class)
+    @ExceptionHandler({
+            AuthenticationFailedException.class,
+            InvalidAuthenticationException.class
+    })
     public ResponseEntity<ErrorResponseDto> handleAuthenticationFailed(AuthenticationFailedException ex) {
         ErrorResponseDto response = new ErrorResponseDto("AUTH_FAILED", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
     //403 Forbidden
-    @ExceptionHandler({UserDormantException.class, UserWithdrawnException.class})
+    @ExceptionHandler({
+            UserDormantException.class,
+            UserWithdrawnException.class
+    })
     public ResponseEntity<ErrorResponseDto> handleAccountStatusException(UserDormantException ex) {
         ErrorResponseDto response = new ErrorResponseDto("ACCESS_DENIED", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     //404 Not Found
-    @ExceptionHandler({UserNotFoundException.class,
+    @ExceptionHandler({
+            UserNotFoundException.class,
             AddressNotFoundException.class,
             PointPolicyNotFoundException.class,
-            GradeNotFoundException.class})
+            GradeNotFoundException.class
+    })
     public ResponseEntity<ErrorResponseDto> handlerNotFoundException(RuntimeException ex) {
         ErrorResponseDto response = new ErrorResponseDto("NOT_FOUND", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    // 409 Conflict
+    @ExceptionHandler(SignupPointAlreadyGrantedException.class)
+    public ResponseEntity<ErrorResponseDto> handleSignupPointAlreadyGranted(SignupPointAlreadyGrantedException ex) {
+        ErrorResponseDto response = new ErrorResponseDto("CONFLICT", ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     //500 Internal Server Error

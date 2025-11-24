@@ -1,18 +1,18 @@
 package com.example.book2onandonuserservice.point.service;
 
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyRequestDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyResponseDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyActiveUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointPolicyResponseDto;
 import java.util.List;
 
 public interface PointPolicyService {
-
-    PointPolicyResponseDto createPolicy(PointPolicyRequestDto requestDto);
 
     List<PointPolicyResponseDto> getAllPolicies();
 
     PointPolicyResponseDto getPolicyByName(String name);
 
-    PointPolicyResponseDto updatePolicy(Long policyId, PointPolicyUpdateRequestDto updateRequestDto);
+    PointPolicyResponseDto updatePolicyRateAndPoint(Integer policyId, PointPolicyUpdateRequestDto dto);
+
+    PointPolicyResponseDto updatePolicyActive(Integer policyId, PointPolicyActiveUpdateRequestDto dto);
 
 }

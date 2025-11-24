@@ -6,7 +6,7 @@ public class PointPolicyNotFoundException extends RuntimeException {
         super("포인트 정책을 찾을 수 없습니다. 정책명 = " + name);
     }
 
-    public PointPolicyNotFoundException(Long id) {
+    public PointPolicyNotFoundException(Integer id) {
         super("포인트 정책을 찾을 수 없습니다. 정책 ID = " + id);
     }
 }

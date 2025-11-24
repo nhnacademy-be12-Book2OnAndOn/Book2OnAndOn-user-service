@@ -1,20 +1,19 @@
 package com.example.book2onandonuserservice.point.controller;
 
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyRequestDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyResponseDto;
-import com.example.book2onandonuserservice.point.domain.dto.PointPolicyUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyActiveUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyUpdateRequestDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointPolicyResponseDto;
 import com.example.book2onandonuserservice.point.service.PointPolicyService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,38 +22,47 @@ import org.springframework.web.bind.annotation.RestController;
 public class PointPolicyController {
 
     private final PointPolicyService pointPolicyService;
+    private static final String USER_ID_HEADER = "X-USER-ID";
 
-    // 1. 정책 생성
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public PointPolicyResponseDto createPolicy(
-            @Valid @RequestBody PointPolicyRequestDto dto
-    ) {
-        return pointPolicyService.createPolicy(dto);
-    }
-
-    // 2. 전체 정책 조회
+    // 1. (관리자) 정책 전체 조회
+    // GET /admin/point-policies
     @GetMapping
-    public List<PointPolicyResponseDto> getAllPolicies() {
+    public List<PointPolicyResponseDto> getAllPolicies(
+            @RequestHeader(USER_ID_HEADER) Long userId // 당장은 안 쓰지만, “어떤 관리자가 이 작업을 했는지” 추후 로깅/감사에 쓰기 위해 작성
+    ) {
         return pointPolicyService.getAllPolicies();
     }
 
-    // 3. 정책 단건 조회
+    // 2. (관리자) 정책 단건 조회
+    // GET /admin/point-policies/SIGNUP
     @GetMapping("/{policyName}")
     public PointPolicyResponseDto getPolicy(
-            @PathVariable String policyName
+            @PathVariable String policyName,
+            @RequestHeader(USER_ID_HEADER) Long userId
     ) {
         return pointPolicyService.getPolicyByName(policyName);
     }
 
-    // 4. 특정 정책 수정
+    // 3. (관리자) 정책 비율/포인트 수정
+    // PUT /admin/point-policies/1
     @PutMapping("/{policyId}")
     public PointPolicyResponseDto updatePolicy(
-            @PathVariable Long policyId,
-            @Valid @RequestBody PointPolicyUpdateRequestDto dto
+            @PathVariable Integer policyId,
+            @Valid @RequestBody PointPolicyUpdateRequestDto dto,
+            @RequestHeader(USER_ID_HEADER) Long userId
     ) {
-        return pointPolicyService.updatePolicy(policyId, dto);
+        return pointPolicyService.updatePolicyRateAndPoint(policyId, dto);
     }
 
-    
+    // 4. (관리자) 정책 활성/비활성
+    // PATCH /admin/point-policies/1/active
+    @PatchMapping("/{policyId}/active")
+    public PointPolicyResponseDto updatePolicyActive(
+            @PathVariable Integer policyId,
+            @Valid @RequestBody PointPolicyActiveUpdateRequestDto dto,
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
+        return pointPolicyService.updatePolicyActive(policyId, dto);
+    }
+
 }

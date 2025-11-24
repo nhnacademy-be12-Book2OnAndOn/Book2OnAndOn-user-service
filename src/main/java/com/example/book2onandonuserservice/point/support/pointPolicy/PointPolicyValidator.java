@@ -1,43 +1,10 @@
 package com.example.book2onandonuserservice.point.support.pointPolicy;
 
-import com.example.book2onandonuserservice.point.domain.entity.PointReason;
-import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
-import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
-import java.util.Set;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PointPolicyValidator {
-
-    private final PointPolicyRepository pointPolicyRepository;
-
-    public PointPolicyValidator(PointPolicyRepository repo) {
-        this.pointPolicyRepository = repo;
-    }
-
-    // whitelist
-    public static final Set<PointReason> POLICY_REASONS = Set.of(
-            PointReason.SIGNUP,
-            PointReason.REVIEW,
-            PointReason.ORDER
-    );
-
-    // (보조). 정책사유 검증
-    public void validateReason(String reason) {
-        try {
-            PointReason parsed = PointReason.valueOf(reason);
-            if (!POLICY_REASONS.contains(parsed)) {
-                throw new InvalidPointPolicyException(
-                        "정책 사유는 SIGNUP, REVIEW, ORDER 중 하나여야 합니다."
-                );
-            }
-        } catch (IllegalArgumentException e) {
-            throw new InvalidPointPolicyException(
-                    "정책 사유는 SIGNUP, REVIEW, ORDER 중 하나여야 합니다."
-            );
-        }
-    }
 
     // (보조). 정책 비율/포인트 검증
     public static void validateRateAndPoint(Double rate, Integer point) {
@@ -55,10 +22,4 @@ public class PointPolicyValidator {
         }
     }
 
-    // (보조). 중복 정책명 방지용 검증
-    public void checkDuplicate(String name) {
-        if (pointPolicyRepository.findByPolicyName(name).isPresent()) {
-            throw new DuplicatePointPolicyException("중복 정책명: " + name);
-        }
-    }
 }

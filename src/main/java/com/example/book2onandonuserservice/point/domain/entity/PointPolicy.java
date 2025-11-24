@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -16,29 +17,30 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
-
+@Table(name = "PointPolicy")
 public class PointPolicy {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "point_policy_id")
-    private Long policyId;
+    private Integer policyId;
 
     @NotNull(message = "정책명는 필수입니다")
+    @Size(max = 50, message = "정책명은 최대 50자까지 입력 가능합니다.")
     @Column(name = "point_policy_name", unique = true, length = 50)
-    @Size(max = 50)
     private String policyName;
 
     @Column(name = "point_add_rate")
-    private Double addRate;
+    private Double policyAddRate;
 
     @Column(name = "point_add_point")
-    private Integer addPoint;
+    private Integer policyAddPoint;
 
-    @NotNull(message = "정책 사유는 필수입니다")
-    @Column(name = "point_policy_reason")
-    @Size(max = 50)
-    private String policyReason;
+    @NotNull(message = "정책 활성화 여부는 필수입니다")
+    @Column(name = "point_is_active", nullable = false)
+    private Boolean policyIsActive;
+
 }

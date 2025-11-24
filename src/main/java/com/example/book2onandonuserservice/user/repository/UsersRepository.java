@@ -1,6 +1,8 @@
 package com.example.book2onandonuserservice.user.repository;
 
+import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -18,8 +20,9 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     //닉네임으로 사용자 찾기
     Optional<Users> findByNickname(String nickname);
-    
+
     //닉네임 중복 체크
     boolean existsByNickname(String nickname);
 
+    List<Users> findAllByStatus(Status status);
 }

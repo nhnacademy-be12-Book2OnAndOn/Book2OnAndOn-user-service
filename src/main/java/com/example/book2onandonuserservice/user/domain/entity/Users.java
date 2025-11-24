@@ -131,5 +131,10 @@ public class Users {
         this.email = null;
     }
 
+    //등급 변경
+    public void changeGrade(UserGrade userGrade) {
+        this.userGrade = userGrade;
+    }
+
 
 }

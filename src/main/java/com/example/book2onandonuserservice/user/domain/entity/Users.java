@@ -1,6 +1,8 @@
 package com.example.book2onandonuserservice.user.domain.entity;
 
+import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -39,10 +41,12 @@ public class Users {
     @Size(max = 50)
     private String name;
 
-    @Column(name = "user_email", unique = true, length = 320)
+    @Column(name = "user_email", unique = true, length = 500)
+    @Convert(converter = EncryptStringConverter.class)
     private String email;
 
-    @Column(name = "user_phone", length = 11)
+    @Column(name = "user_phone", length = 255)
+    @Convert(converter = EncryptStringConverter.class)
     private String phone;
 
     @Column(name = "user_birth")
@@ -126,7 +130,7 @@ public class Users {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
-        this.email = "withdrawn_" + this.userId; //Unique 제약조건을 피하기 위함
+        this.email = "withdrawn_" + this.userId + "@deleted.com"; //Unique 제약조건을 피하기 위함
         this.phone = null;
         this.email = null;
     }

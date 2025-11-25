@@ -1,8 +1,10 @@
 package com.example.book2onandonuserservice.address.domain.entity;
 
 
+import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,13 +36,13 @@ public class Address {
     @NotNull
     private String userAddressName;
 
-    @Column(name = "user_address", length = 100)
-    @Size(max = 100)
+    @Column(name = "user_address", length = 255)
+    @Convert(converter = EncryptStringConverter.class)
     @NotNull
     private String userAddress;
 
-    @Column(name = "user_address_detail", length = 100)
-    @Size(max = 100)
+    @Column(name = "user_address_detail", length = 255)
+    @Convert(converter = EncryptStringConverter.class)
     private String userAddressDetail;
 
     @ManyToOne

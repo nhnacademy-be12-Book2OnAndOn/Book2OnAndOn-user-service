@@ -13,7 +13,6 @@ import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
-import com.example.book2onandonuserservice.global.service.CouponService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -44,7 +43,6 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final PaycoClient paycoClient;
-    private final CouponService couponService;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -104,7 +102,6 @@ public class AuthServiceImpl implements AuthService {
                 defaultGrade
         );
         Users savedUser = usersRepository.save(newUser);
-        couponService.issueWelcomeCoupon(savedUser.getUserId());
 
         //인증정보 저장
         UserAuth localAuth = UserAuth.builder()

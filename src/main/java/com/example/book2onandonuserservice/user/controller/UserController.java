@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,15 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private static final String USER_ID_HEADER = "X-USER-ID";
+
+    private static final String USER_ID_HEADER = "X-User-Id";
 
     //내 정보 조회
     @GetMapping("/users/me")
     public ResponseEntity<UserResponseDto> getMyInfo(
             @RequestHeader(USER_ID_HEADER) Long userId
     ) {
-        UserResponseDto response = userService.getMyInfo(userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.getMyInfo(userId));
     }
 
     //내 정보 수정
@@ -37,8 +36,7 @@ public class UserController {
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody UserUpdateRequestDto request
     ) {
-        UserResponseDto response = userService.updateMyInfo(userId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.updateMyInfo(userId, request));
     }
 
     //비밀번호 변경
@@ -58,14 +56,5 @@ public class UserController {
     ) {
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
-    }
-
-    //(admin) 특정 회원 정보 조회
-    @GetMapping("/admin/users/{userId}")
-    public ResponseEntity<UserResponseDto> getUserInfoByAdmin(
-            @PathVariable Long userId
-    ) {
-        UserResponseDto response = userService.getMyInfo(userId);
-        return ResponseEntity.ok(response);
     }
 }

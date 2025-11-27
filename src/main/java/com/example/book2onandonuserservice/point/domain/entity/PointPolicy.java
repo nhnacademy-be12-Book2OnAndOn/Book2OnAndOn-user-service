@@ -20,7 +20,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "PointPolicy")
+@Table(name = "point_policy")
 public class PointPolicy {
 
     @Id

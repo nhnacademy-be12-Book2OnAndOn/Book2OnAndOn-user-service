@@ -26,7 +26,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "PointHistory")
+@Table(name = "point_history")
 public class PointHistory {
 
     @Id

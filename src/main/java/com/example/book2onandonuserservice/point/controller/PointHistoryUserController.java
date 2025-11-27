@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -106,13 +105,5 @@ public class PointHistoryUserController {
             throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
         }
         return pointHistoryService.refundPoint(dto);
-    }
-
-    // 6. 포인트 만료 처리 (해당 유저에 대해 만료일자가 지난 포인트들을 즉시 만료 처리)
-    // POST /users/me/points/expire?userId=1
-    @PostMapping("/expire")
-    public ResponseEntity<Void> expirePoints(@RequestHeader(USER_ID_HEADER) Long userId) {
-        pointHistoryService.expirePoints(userId);
-        return ResponseEntity.ok().build();
     }
 }

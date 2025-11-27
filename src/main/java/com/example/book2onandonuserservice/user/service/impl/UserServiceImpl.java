@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class UserServiceImpl implements UserService {
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
@@ -28,12 +28,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponseDto getMyInfo(Long userId) {
         Users user = findUserOrThrow(userId);
         return UserResponseDto.fromEntity(user);
     }
 
     @Override
+    @Transactional
     public UserResponseDto updateMyInfo(Long userId, UserUpdateRequestDto request) {
         Users user = findUserOrThrow(userId);
         if (!user.getEmail().equals(request.email()) && usersRepository.findByEmail(request.email()).isPresent()) {
@@ -54,6 +56,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void changePassword(Long userId, PasswordChangeRequestDto request) {
         Users user = findUserOrThrow(userId);
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -65,12 +68,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long userId) {
         Users user = findUserOrThrow(userId);
         user.withDraw();
     }
 
     @Override
+    @Transactional
     public UserResponseDto getUserInfo(Long userId) {
         Users user = findUserOrThrow(userId);
         return UserResponseDto.fromEntity(user);

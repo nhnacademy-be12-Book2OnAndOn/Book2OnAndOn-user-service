@@ -44,6 +44,8 @@ public class EncryptionUtils {
         SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "AES");
         IvParameterSpec ivParamSpec = new IvParameterSpec(iv.getBytes());
 
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivParamSpec);
+        
         byte[] decodedBytes = Base64.getDecoder().decode(cipherText);
         byte[] decrypted = cipher.doFinal(decodedBytes);
         return new String(decrypted, StandardCharsets.UTF_8);

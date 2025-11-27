@@ -25,4 +25,10 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     boolean existsByNickname(String nickname);
 
     List<Users> findAllByStatus(Status status);
+
+    //이름 + 이메일로 찾기 (아이디 찾기)
+    Optional<Users> findByNameAndEmail(String name, String email);
+
+    //아이디 + 이메일로 찾기 (비밀번호 찾기)
+    Optional<Users> findByUserLoginIdAndEmail(String userLoginId, String email);
 }

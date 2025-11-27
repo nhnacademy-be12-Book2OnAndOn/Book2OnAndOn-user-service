@@ -33,7 +33,12 @@ public class JwtTokenProvider {
         String accessToken = createAccessToken(tokenRequest);
         String refreshToken = createRefreshToken();
 
-        return new TokenResponseDto(accessToken, refreshToken);
+        return new TokenResponseDto(
+                accessToken,
+                refreshToken,
+                "Bearer",
+                accessTokenValidityInMilliseconds / 1000
+        );
     }
 
     private String createAccessToken(TokenRequestDto tokenRequest) {

@@ -1,8 +1,11 @@
 package com.example.book2onandonuserservice.auth.controller;
 
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoLoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
@@ -49,4 +52,19 @@ public class AuthController {
         TokenResponseDto tokenResponse = authService.loginWithPayco(request);
         return ResponseEntity.ok(tokenResponse);
     }
+
+    //아이디찾기
+    @PostMapping("/find-id")
+    public ResponseEntity<FindIdResponseDto> findId(@Valid @RequestBody FindIdRequestDto request) {
+        FindIdResponseDto response = authService.findId(request);
+        return ResponseEntity.ok(response);
+    }
+
+    //비밀번호 찾기(임시 비밀번호 발급)
+    @PostMapping("/find-password")
+    public ResponseEntity<Void> findPassword(@Valid @RequestBody FindPasswordRequestDto request) {
+        authService.issueTemporaryPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -3,9 +3,12 @@ package com.example.book2onandonuserservice.auth.service.impl;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoLoginRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoMemberResponse;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoTokenResponse;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
@@ -13,7 +16,7 @@ import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
-import com.example.book2onandonuserservice.global.service.CouponService;
+import com.example.book2onandonuserservice.global.service.EmailService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -28,6 +31,7 @@ import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,7 +48,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final PaycoClient paycoClient;
-    private final CouponService couponService;
+    //    private final RabbitTemplate rabbitTemplate;
+    private final EmailService emailService;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -104,7 +109,11 @@ public class AuthServiceImpl implements AuthService {
                 defaultGrade
         );
         Users savedUser = usersRepository.save(newUser);
-        couponService.issueWelcomeCoupon(savedUser.getUserId());
+//        rabbitTemplate.convertAndSend(
+//                RabbitConfig.EXCHANGE,
+//                RabbitConfig.ROUTING_KEY,
+//                savedUser.getUserId()
+//        );
 
         //인증정보 저장
         UserAuth localAuth = UserAuth.builder()
@@ -205,6 +214,40 @@ public class AuthServiceImpl implements AuthService {
         return issueToken(user);
     }
 
+    //아이디찾기
+    @Override
+    public FindIdResponseDto findId(FindIdRequestDto request) {
+        Users user = usersRepository.findByNameAndEmail(request.name(), request.email())
+                .orElseThrow(() -> new RuntimeException("입력하신 정보와 일치하는 회원이 없습니다."));
+
+        //아이디 마스킹 처리
+        String maskedId = maskUserId(user.getUserLoginId());
+
+        // 3. 마스킹된 아이디 반환
+        return new FindIdResponseDto(maskedId);
+    }
+
+    //임시비밀번호 발급 (이메일 전송
+    @Override
+    @Transactional
+    public void issueTemporaryPassword(FindPasswordRequestDto request) {
+        Users user = usersRepository.findByUserLoginIdAndEmail(request.userLoginId(), request.email())
+                .orElseThrow(() -> new RuntimeException("입력하신 정보와 일치하는 회원이 없습니다."));
+        //임시비밀번호 생성
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+
+        //비밀번호 변경(DB반영)
+        String encodedTempPassword = passwordEncoder.encode(tempPassword);
+        user.changePassword(encodedTempPassword);
+
+        //이메일 발송
+        String subject = "[Book2OnAndOn] 임시비밀번호 안내";
+        String text = "회원님의 임시 비밀번호는 <b>" + tempPassword + "</b> 입니다.<br>" +
+                "로그인 후 반드시 비밀번호를 변경해 주세요.";
+        emailService.sendMail(user.getEmail(), subject, text);
+    }
+
+
     //Payco 전화번호 파싱
     private String parsePhoneNumber(String paycoMobile) {
         if (paycoMobile == null) {
@@ -226,5 +269,15 @@ public class AuthServiceImpl implements AuthService {
             return null;
         }
         return LocalDate.parse(paycoBirthday, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
+    //아이디 마스킹
+    private String maskUserId(String userLoginId) {
+        if (userLoginId == null || userLoginId.isBlank()) {
+            return "";
+        }
+        int length = userLoginId.length();
+
+        return userLoginId.substring(0, length - 2) + "**";
     }
 }

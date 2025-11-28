@@ -30,40 +30,45 @@ public class PointHistoryAdminController {
     // 1. (관리자) 특정 유저의 포인트 전체 이력 조회
     // GET /admin/points?userId=1
     @GetMapping
-    public Page<PointHistoryResponseDto> getUserPointHistory(
-            @RequestHeader(USER_ID_HEADER) Long adminUserId, // == userId / adminUserId: 이 API를 호출한 관리자 ID
+    public ResponseEntity<Page<PointHistoryResponseDto>> getUserPointHistory(
+//            @RequestHeader(USER_ID_HEADER) Long adminUserId, // == userId / adminUserId: 이 API를 호출한 관리자 ID
             @RequestParam Long userId,
             @PageableDefault(page = 0, size = 10) Pageable pageable
     ) {
-        return pointHistoryService.getMyPointHistory(userId, pageable);
+        Page<PointHistoryResponseDto> pointHistory = pointHistoryService.getMyPointHistory(userId, pageable);
+        return ResponseEntity.ok(pointHistory);
     }
 
     // 2. (관리자) 특정 유저의 현재 보유 포인트 조회
     // GET /admin/points/current?userId=1
     @GetMapping("/current")
-    public CurrentPointResponseDto getUserCurrentPoint(
-            @RequestHeader(USER_ID_HEADER) Long adminUserId,
+    public ResponseEntity<CurrentPointResponseDto> getUserCurrentPoint(
+//            @RequestHeader(USER_ID_HEADER) Long adminUserId,
             @RequestParam Long userId
     ) {
-        return pointHistoryService.getMyCurrentPoint(userId);
+        CurrentPointResponseDto currentPoint = pointHistoryService.getMyCurrentPoint(userId);
+        return ResponseEntity.ok(currentPoint);
     }
 
     // 3. (관리자) 수동 포인트 지급/차감
     // POST /admin/points/adjust
     @PostMapping("/adjust")
-    public EarnPointResponseDto adjustPointByAdmin(
-            @RequestHeader(USER_ID_HEADER) Long adminUserId,
+    public ResponseEntity<EarnPointResponseDto> adjustPointByAdmin(
+//            @RequestHeader(USER_ID_HEADER) Long adminUserId,
             @Valid @RequestBody PointHistoryAdminAdjustRequestDto requestDto
     ) {
         // requestDto.getUserId() : 포인트 조정 대상 회원
         // adminUserId           : 이 조정을 실행한 관리자
-        return pointHistoryService.adjustPointByAdmin(requestDto);
+        EarnPointResponseDto earnPoint = pointHistoryService.adjustPointByAdmin(requestDto);
+        return ResponseEntity.ok(earnPoint);
     }
 
     // 4. (관리자) 포인트 만료 처리 (해당 유저에 대해 만료일자가 지난 포인트들을 즉시 만료 처리)
     // POST /users/me/points/expire?userId=1
     @PostMapping("/expire")
-    public ResponseEntity<Void> expirePoints(@RequestHeader(USER_ID_HEADER) Long userId) {
+    public ResponseEntity<Void> expirePoints(
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
         pointHistoryService.expirePoints(userId);
         return ResponseEntity.ok().build();
     }

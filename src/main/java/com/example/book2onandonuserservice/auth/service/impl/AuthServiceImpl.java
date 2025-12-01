@@ -10,13 +10,16 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestD
 import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
+import com.example.book2onandonuserservice.auth.domain.entity.RefreshToken;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
 import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
+import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepository;
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
 import com.example.book2onandonuserservice.global.service.EmailService;
+import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -29,9 +32,9 @@ import com.example.book2onandonuserservice.user.exception.UserWithdrawnException
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.net.URI;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,6 +53,8 @@ public class AuthServiceImpl implements AuthService {
     private final PaycoClient paycoClient;
     //    private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
+    private final RedisUtil redisUtil;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -75,7 +80,15 @@ public class AuthServiceImpl implements AuthService {
     //토큰 생성
     private TokenResponseDto issueToken(Users user) {
         TokenRequestDto tokenRequest = new TokenRequestDto(user.getUserId(), user.getRole().name());
-        return jwtTokenProvider.createTokens(tokenRequest);
+        TokenResponseDto tokenResponse = jwtTokenProvider.createTokens(tokenRequest);
+
+        RefreshToken refreshToken = new RefreshToken(
+                String.valueOf(user.getUserId()),
+                tokenResponse.refreshToken()
+        );
+        refreshTokenRepository.save(refreshToken);
+
+        return tokenResponse;
     }
 
     //기본 등급 조회
@@ -214,6 +227,24 @@ public class AuthServiceImpl implements AuthService {
         return issueToken(user);
     }
 
+    @Override
+    @Transactional
+    public void logout(String accessToken) {
+        Long expiration = jwtTokenProvider.getExpiration(accessToken);
+        long now = System.currentTimeMillis();
+        long remainingTime = expiration - now;
+
+        if (remainingTime > 0) {
+            redisUtil.setBlackList(accessToken, "logout", remainingTime);
+        }
+        String userId = jwtTokenProvider.getUserId(accessToken);
+        if (userId != null) {
+            refreshTokenRepository.deleteById(userId);
+            System.out.println("Refresh Token 삭제완료: " + userId);
+        }
+    }
+
+
     //아이디찾기
     @Override
     public FindIdResponseDto findId(FindIdRequestDto request) {
@@ -234,7 +265,7 @@ public class AuthServiceImpl implements AuthService {
         Users user = usersRepository.findByUserLoginIdAndEmail(request.userLoginId(), request.email())
                 .orElseThrow(() -> new RuntimeException("입력하신 정보와 일치하는 회원이 없습니다."));
         //임시비밀번호 생성
-        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        String tempPassword = generateTempPassword();
 
         //비밀번호 변경(DB반영)
         String encodedTempPassword = passwordEncoder.encode(tempPassword);
@@ -280,4 +311,34 @@ public class AuthServiceImpl implements AuthService {
 
         return userLoginId.substring(0, length - 2) + "**";
     }
+
+
+    //임시 비밀번호 생성 로직
+    private String generateTempPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$!%*#?&";
+        SecureRandom random = new SecureRandom();
+
+        while (true) {
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < 8; i++) {
+                sb.append(chars.charAt(random.nextInt(chars.length())));
+            }
+
+            String pwd = sb.toString();
+
+            if (pwd.matches(".*[A-Za-z].*") &&
+                    pwd.matches(".*\\d.*") &&
+                    pwd.matches(".*[@$!%*#?&].*")) {
+                return pwd;
+            }
+        }
+    }
+    /*
+    math.random을 사용하면 안됨.
+    math.random은 패턴이 존재하고 예측이 가능함.
+    OWASP, NIST 등 보안 기준에서 비밀번호·토큰·인증용 난수에 Math.random() 사용 금지
+    SecureRandom은 예측이 불가능하고 보안적으로 안전함.
+     */
+
 }

@@ -19,9 +19,12 @@ public interface AuthService {
     //PAYCO 로그인
     TokenResponseDto loginWithPayco(PaycoLoginRequestDto request);
 
+    //로그아웃
+    void logout(String accessToken);
+
     //아이디찾기
     FindIdResponseDto findId(FindIdRequestDto request);
 
-    //임시비밀본호
+    //임시비밀번호
     void issueTemporaryPassword(FindPasswordRequestDto request);
 }

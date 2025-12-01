@@ -1,11 +1,12 @@
 package com.example.book2onandonuserservice.user.domain.dto.request;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @NoArgsConstructor
 public class AdminUserUpdateRequestDto {
-    private String nickname;
     private String role;
+    private String status;
+    private String gradeName;
 }

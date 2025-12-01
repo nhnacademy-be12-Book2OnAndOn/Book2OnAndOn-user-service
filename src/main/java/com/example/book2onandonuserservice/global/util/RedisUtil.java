@@ -17,4 +17,17 @@ public class RedisUtil {
     public boolean hasKeyBlackList(String key) {
         return redisTemplate.hasKey(key);
     }
+
+    //인증번호 저장을 위한 데이터 저장 로직
+    public void setData(String key, String value, long duration) {
+        redisTemplate.opsForValue().set(key, value, duration, TimeUnit.MILLISECONDS);
+    }
+
+    public String getData(String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+
+    public void deleteData(String key) {
+        redisTemplate.delete(key);
+    }
 }

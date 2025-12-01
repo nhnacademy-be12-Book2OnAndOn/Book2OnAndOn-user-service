@@ -79,6 +79,9 @@ public class Users {
     @JoinColumn(name = "user_grade_id")
     private UserGrade userGrade;
 
+    @Column(name = "withdraw_reason")
+    private String withdrawReason;
+
     //생성자
     private void initCommonFields(UserGrade userGrade, String name, String email, String phone, LocalDate birth) {
         this.nickname = name;
@@ -126,18 +129,27 @@ public class Users {
     }
 
     //회원 탈퇴
-    public void withDraw() {
+    public void withDraw(String reason) {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
         this.email = "withdrawn_" + this.userId + "@deleted.com"; //Unique 제약조건을 피하기 위함
         this.phone = null;
         this.email = null;
+        this.withdrawReason = reason;
     }
 
     //등급 변경
     public void changeGrade(UserGrade userGrade) {
         this.userGrade = userGrade;
+    }
+
+    public void changeRole(Role newRole) {
+        this.role = newRole;
+    }
+
+    public void changeStatus(Status newStatus) {
+        this.status = newStatus;
     }
 
 

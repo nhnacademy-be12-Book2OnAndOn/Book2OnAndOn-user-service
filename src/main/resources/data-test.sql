@@ -30,12 +30,12 @@ VALUES (1,
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP);
 
--- Point Policy
-INSERT INTO point_policy (point_policy_name,
-                          point_add_rate,
-                          point_add_point,
-                          point_is_active)
-VALUES ('SIGNUP', null, 5000, true),
-       ('ORDER', 0.01, null, true),
-       ('REVIEW', null, 200, true),
-       ('REVIEW_PHOTO', null, 500, true);
+# -- Point Policy
+# INSERT INTO point_policy (point_policy_name,
+#                           point_add_rate,
+#                           point_add_point,
+#                           point_is_active)
+# VALUES ('SIGNUP', null, 5000, true),
+#        ('ORDER', 0.01, null, true),
+#        ('REVIEW', null, 200, true),
+#        ('REVIEW_PHOTO', null, 500, true);

@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.user.scheduler;
+package com.example.book2onandonuserservice.global.scheduler;
 
 import com.example.book2onandonuserservice.global.client.OrderServiceClient;
 import com.example.book2onandonuserservice.user.domain.entity.Status;

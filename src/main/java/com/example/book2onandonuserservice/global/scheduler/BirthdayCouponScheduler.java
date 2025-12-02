@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -24,6 +25,11 @@ public class BirthdayCouponScheduler {
     private static final int CHUNK_SIZE = 1000;
 
     @Scheduled(cron = "0 0 0 1 * *")
+    @SchedulerLock(
+            name = "birthday_user_task",
+            lockAtLeastFor = "30s",
+            lockAtMostFor = "10m"
+    )
     public void sendBirthdayCouponMessage() {
         int currentMonth = LocalDate.now().getMonthValue();
         log.info("{}월 생일 쿠폰 발급 스케줄러 시작", currentMonth);

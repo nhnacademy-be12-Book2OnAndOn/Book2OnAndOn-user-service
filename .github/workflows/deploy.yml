@@ -2,7 +2,7 @@ name: CI/CD for User Service
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "dev", "master" ]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +21,26 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build and Analyze with SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST_URL }}
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=Book2onandon-user-service \
+            -Dsonar.projectName="Book2onandon-user-service" \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dspring.cloud.config.enabled=false \
 
       - name: Build with Maven
         run: |
@@ -42,6 +62,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ghcr.io/nhnacademy-be12-book2onandon/user-service:v1
+
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master

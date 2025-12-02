@@ -53,7 +53,6 @@ jobs:
           PAYCO_CLIENT_SECRET: ${{ secrets.PAYCO_CLIENT_SECRET }}
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PW: ${{ secrets.MAIL_PW }}
-          REDIS_PW: ${{ secrets.REDIS_PW }}
           CONFIG_USER: ${{ secrets.CONFIG_USER }}
           CONFIG_PASS: ${{ secrets.CONFIG_PASS }}
         run: |

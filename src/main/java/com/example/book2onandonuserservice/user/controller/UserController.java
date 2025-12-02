@@ -2,13 +2,18 @@ package com.example.book2onandonuserservice.user.controller;
 
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
+import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,10 +56,23 @@ public class UserController {
 
     //회원 탈퇴
     @DeleteMapping("/users/me")
-    public ResponseEntity<Void> deleteUser(
-            @RequestHeader(USER_ID_HEADER) Long userId
+    public ResponseEntity<Void> deleteMyUser(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestBody(required = false) String reason
     ) {
-        userService.deleteUser(userId);
+        String finalReason = (reason == null || reason.isBlank()) ? "사유 선택 안함" : reason;
+
+        userService.deleteUser(userId, finalReason);
         return ResponseEntity.noContent().build();
+    }
+
+    //회원 리뷰 조회
+    @GetMapping("/users/{userId}/reviews")
+    public ResponseEntity<Page<BookReviewResponseDto>> getUserReviews(
+            @PathVariable("userId") Long userId,
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
+        Page<BookReviewResponseDto> reviews = userService.getUserReviews(userId, pageable);
+        return ResponseEntity.ok(reviews);
     }
 }

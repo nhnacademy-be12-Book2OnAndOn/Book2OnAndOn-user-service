@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "UserAddress")
+@Table(name = "user_address")
 public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,6 +35,16 @@ public class Address {
     @Size(max = 20)
     @NotNull
     private String userAddressName;
+
+    @Column(name = "recipient", length = 50)
+    private String recipient;
+
+    @Convert(converter = EncryptStringConverter.class)
+    @Column(name = "phone", length = 255)
+    private String phone;
+
+    @Column(name = "zip_code", length = 10)
+    private String zipCode;
 
     @Column(name = "user_address", length = 255)
     @Convert(converter = EncryptStringConverter.class)
@@ -53,19 +63,14 @@ public class Address {
     @Column(name = "user_address_default")
     private boolean isDefault;
 
-    //빌더 패턴 사용을 위한 isDefault 초기화
-    public Address(String userAddressName, String userAddress, String userAddressDetail, Users user) {
-        this.userAddressName = userAddressName;
-        this.userAddress = userAddress;
-        this.userAddressDetail = userAddressDetail;
-        this.user = user;
-        this.isDefault = false;
-    }
-
     //더티체킹을 위한 매서드
     //주소 정보 수정
-    public void updateAddressInfo(String userAddressName, String userAddress, String userAddressDetail) {
+    public void updateAddressInfo(String userAddressName, String recipient, String phone,
+                                  String zipCode, String userAddress, String userAddressDetail) {
         this.userAddressName = userAddressName;
+        this.recipient = recipient;
+        this.phone = phone;
+        this.zipCode = zipCode;
         this.userAddress = userAddress;
         this.userAddressDetail = userAddressDetail;
     }

@@ -36,6 +36,9 @@ public class UserAddressServiceImpl implements UserAddressService {
         return UserAddressResponseDto.builder()
                 .addressId(address.getAddressId())
                 .userAddressName(address.getUserAddressName())
+                .recipient(address.getRecipient())
+                .phone(address.getPhone())
+                .zipCode(address.getZipCode())
                 .userAddress(address.getUserAddress())
                 .userAddressDetail(address.getUserAddressDetail())
                 .isDefault(address.isDefault())
@@ -84,6 +87,9 @@ public class UserAddressServiceImpl implements UserAddressService {
         Address address = Address.builder()
                 .user(user)
                 .userAddressName(request.getUserAddressName())
+                .recipient(request.getRecipient())
+                .phone(request.getPhone())
+                .zipCode(request.getZipCode())
                 .userAddress(request.getUserAddress())
                 .userAddressDetail(request.getUserAddressDetail())
                 .isDefault(shouldBeDefault)
@@ -127,12 +133,23 @@ public class UserAddressServiceImpl implements UserAddressService {
             throw new AddressNameDuplicateException();
         }
 
-        //터티체킹
+        //더티체킹
         address.updateAddressInfo(
                 request.getUserAddressName(),
+                request.getRecipient(),
+                request.getPhone(),
+                request.getZipCode(),
                 request.getUserAddress(),
                 request.getUserAddressDetail()
         );
+
+        if (request.getIsDefault()) {
+            if (!address.isDefault()) {
+                userAddressRepository.findByUserAndIsDefaultTrue(user)
+                        .ifPresent(old -> old.changeDefaultAddress(false));
+                address.changeDefaultAddress(true);
+            }
+        }
 
         return convertToResponse(address);
     }

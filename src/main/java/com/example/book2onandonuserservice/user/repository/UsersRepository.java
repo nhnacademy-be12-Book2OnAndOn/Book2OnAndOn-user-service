@@ -4,7 +4,11 @@ import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -31,4 +35,7 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     //아이디 + 이메일로 찾기 (비밀번호 찾기)
     Optional<Users> findByUserLoginIdAndEmail(String userLoginId, String email);
+
+    @Query("SELECT u.userId FROM Users u WHERE MONTH(u.birth) = :month")
+    Slice<Long> findIdsByBirthMonth(@Param("month") int month, Pageable pageable);
 }

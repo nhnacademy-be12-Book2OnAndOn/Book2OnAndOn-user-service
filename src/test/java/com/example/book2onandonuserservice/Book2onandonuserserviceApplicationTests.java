@@ -8,7 +8,6 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = {
 
         // 1. Config Server, Eureka 끄기
-        "spring.config.import=optional:",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false",
 

@@ -19,7 +19,6 @@ import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
 import com.example.book2onandonuserservice.global.config.RabbitConfig;
-import com.example.book2onandonuserservice.global.service.CouponService;
 import com.example.book2onandonuserservice.global.service.EmailService;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
@@ -58,7 +57,6 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final RedisUtil redisUtil;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final CouponService couponService;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -241,9 +239,6 @@ public class AuthServiceImpl implements AuthService {
                                 UserGrade defaultGrade = getDefaultGrade();
                                 Users newUser = new Users(name, email, phone, birth, defaultGrade);
                                 Users savedUser = usersRepository.save(newUser);
-
-                                couponService.issueWelcomeCoupon(savedUser.getUserId());
-
                                 return savedUser;
                             });
 

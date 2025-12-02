@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -78,4 +79,21 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    //이메일 인증 요청
+    @PostMapping("/email/send")
+    public ResponseEntity<Void> sendEmailVerification(@RequestParam String email) {
+        authService.sendVerificationCode(email);
+        return ResponseEntity.ok().build();
+    }
+
+    //인증번호 확인
+    @PostMapping("/email/verify")
+    public ResponseEntity<String> verifyEmail(@RequestParam String email, @RequestParam String code) {
+        boolean isVerified = authService.verifyEmail(email, code);
+        if (isVerified) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 실패");
+        }
+    }
 }

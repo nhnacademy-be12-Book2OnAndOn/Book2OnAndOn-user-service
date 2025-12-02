@@ -18,6 +18,8 @@ import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepositor
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
+import com.example.book2onandonuserservice.global.config.RabbitConfig;
+import com.example.book2onandonuserservice.global.service.CouponService;
 import com.example.book2onandonuserservice.global.service.EmailService;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
@@ -34,8 +36,9 @@ import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,10 +54,11 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final PaycoClient paycoClient;
-    //    private final RabbitTemplate rabbitTemplate;
+    private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
     private final RedisUtil redisUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CouponService couponService;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -79,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
 
     //토큰 생성
     private TokenResponseDto issueToken(Users user) {
-        TokenRequestDto tokenRequest = new TokenRequestDto(user.getUserId(), user.getRole().name());
+        TokenRequestDto tokenRequest = new TokenRequestDto(user.getUserId(), user.getRole().getKey());
         TokenResponseDto tokenResponse = jwtTokenProvider.createTokens(tokenRequest);
 
         RefreshToken refreshToken = new RefreshToken(
@@ -98,16 +102,54 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException(basicGrade + "가 DB에 없습니다."));
     }
 
+    //이메일 인증번호 발송
+    @Override
+    public void sendVerificationCode(String email) {
+        String cleanEmail = email.trim();
+        if (usersRepository.findByEmail(cleanEmail).isPresent()) {
+            throw new UserEmailDuplicateException();
+        }
+
+        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+        redisUtil.setData("AuthCode:" + cleanEmail, code, 5 * 60 * 1000L);
+
+        emailService.sendMail(cleanEmail, "[Book2OnAndOn] 회원가입 인증번호",
+                "인증번호는 <b>" + code + "</b> 입니다.");
+    }
+
+    //인증번호 검증
+    @Override
+    public boolean verifyEmail(String email, String code) {
+        String cleanEmail = email.trim();
+        String savedCode = redisUtil.getData("AuthCode:" + cleanEmail);
+
+        if (savedCode == null || !savedCode.equals(code)) {
+            return false;
+        }
+
+        redisUtil.setData("Verified:" + cleanEmail, "true", 30 * 60 * 1000L);
+        redisUtil.deleteData("AuthCode:" + cleanEmail);
+        return true;
+    }
+
     //로컬 회원가입
     @Override
     @Transactional
     public UserResponseDto signUp(LocalSignUpRequestDto request) {
+        String cleanEmail = request.email().trim();
+
         if (usersRepository.existsByUserLoginId(request.userLoginId())) {
             throw new UserLoginIdDuplicateException();
         }
-        if (usersRepository.findByEmail(request.email()).isPresent()) {
+        if (usersRepository.findByEmail(cleanEmail).isPresent()) {
             throw new UserEmailDuplicateException();
         }
+
+        String isVerified = redisUtil.getData("Verified:" + cleanEmail);
+        if (!"true".equals(isVerified)) {
+            throw new RuntimeException("이메일 인증이 완료되지 않았습니다.");
+        }
+        redisUtil.deleteData("Verified:" + cleanEmail);
 
         UserGrade defaultGrade = getDefaultGrade();
         String encodePassword = passwordEncoder.encode(request.password());
@@ -122,11 +164,11 @@ public class AuthServiceImpl implements AuthService {
                 defaultGrade
         );
         Users savedUser = usersRepository.save(newUser);
-//        rabbitTemplate.convertAndSend(
-//                RabbitConfig.EXCHANGE,
-//                RabbitConfig.ROUTING_KEY,
-//                savedUser.getUserId()
-//        );
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY,
+                savedUser.getUserId()
+        );
 
         //인증정보 저장
         UserAuth localAuth = UserAuth.builder()
@@ -136,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         userAuthRepository.save(localAuth);
 
-        return UserResponseDto.fromEntity(savedUser);
+        return UserResponseDto.fromEntity(savedUser, 0L);
     }
 
     @Override
@@ -190,39 +232,32 @@ public class AuthServiceImpl implements AuthService {
         LocalDate birth = parseBirthday(paycoInfo.getBirthday());
 
         //가입여부 확인 및 처리
-        Optional<UserAuth> userAuthOpt = userAuthRepository.findByProviderAndProviderUserId(
-                PAYCO_PROVIDER, providerId);
+        Users user = userAuthRepository.findByProviderAndProviderUserId(PAYCO_PROVIDER, providerId)
+                .map(UserAuth::getUser)
+                .orElseGet(() -> {
 
-        Users user;
-        if (userAuthOpt.isPresent()) {
-            user = userAuthOpt.get().getUser();
-            user = processLogin(user);
+                    Users foundOrNewUser = usersRepository.findByEmail(email)
+                            .orElseGet(() -> {
+                                UserGrade defaultGrade = getDefaultGrade();
+                                Users newUser = new Users(name, email, phone, birth, defaultGrade);
+                                Users savedUser = usersRepository.save(newUser);
 
-        } else {
-            Optional<Users> userOptByEmail = usersRepository.findByEmail(email);
+                                couponService.issueWelcomeCoupon(savedUser.getUserId());
 
-            if (userOptByEmail.isPresent()) {
-                user = userOptByEmail.get();
-                user = processLogin(user);
-            } else {
-                UserGrade defaultGrade = getDefaultGrade();
-                user = new Users(
-                        name,
-                        email,
-                        phone,
-                        birth,
-                        defaultGrade
-                );
-                usersRepository.save(user);
-            }
+                                return savedUser;
+                            });
 
-            UserAuth newAuth = UserAuth.builder()
-                    .provider(PAYCO_PROVIDER)
-                    .providerUserId(providerId)
-                    .user(user)
-                    .build();
-            userAuthRepository.save(newAuth);
-        }
+                    UserAuth newAuth = UserAuth.builder()
+                            .provider(PAYCO_PROVIDER)
+                            .providerUserId(providerId)
+                            .user(foundOrNewUser)
+                            .build();
+                    userAuthRepository.save(newAuth);
+
+                    return foundOrNewUser;
+                });
+
+        processLogin(user);
 
         return issueToken(user);
     }
@@ -230,7 +265,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(String accessToken) {
-        Long expiration = jwtTokenProvider.getExpiration(accessToken);
+        long expiration = jwtTokenProvider.getExpiration(accessToken);
         long now = System.currentTimeMillis();
         long remainingTime = expiration - now;
 

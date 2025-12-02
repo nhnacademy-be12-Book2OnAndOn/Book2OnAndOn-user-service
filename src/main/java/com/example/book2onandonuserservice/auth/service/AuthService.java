@@ -10,6 +10,13 @@ import com.example.book2onandonuserservice.auth.domain.dto.response.TokenRespons
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 
 public interface AuthService {
+
+    //이메일 인증번호 발송
+    void sendVerificationCode(String email);
+
+    //인증번호 검증
+    boolean verifyEmail(String email, String code);
+
     //로컬 회원가입
     UserResponseDto signUp(LocalSignUpRequestDto request);
 

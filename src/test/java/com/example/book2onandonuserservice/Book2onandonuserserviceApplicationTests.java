@@ -21,7 +21,8 @@ import org.springframework.test.context.TestPropertySource;
         // 3. Redis 더미 설정
         "spring.data.redis.host=localhost",
         "spring.data.redis.port=6379",
-        "spring.data.redis.password=dummy",
+        "spring.data.redis.password=",
+        "spring.data.redis.repositories.enabled=false",
 
         // 4. Encryption 더미 키
         "encryption.secret-key=12345678901234567890123456789012",
@@ -30,10 +31,6 @@ import org.springframework.test.context.TestPropertySource;
         "jwt.secret-key=test-jwt-secret",
         "jwt.access-token-validity=1800",
         "jwt.refresh-token-validity=604800",
-
-        // 6. Payco 더미
-        "payco.client-id=test-client",
-        "payco.client-secret=test-secret",
 
         // 7. Mail 더미
         "spring.mail.host=localhost",

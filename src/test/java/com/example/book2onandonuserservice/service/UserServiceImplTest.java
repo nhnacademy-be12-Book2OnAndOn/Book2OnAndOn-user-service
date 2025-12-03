@@ -238,11 +238,9 @@ class UserServiceImplTest {
     @Test
     @DisplayName("관리자 - 회원 정보 수정 성공 (Role, Status, Grade)")
     void updateUserByAdmin_Success() {
-        // DTO에 Setter나 생성자 필요. 여기선 Reflection으로 값 주입 가정
-        AdminUserUpdateRequestDto request = new AdminUserUpdateRequestDto();
-        ReflectionTestUtils.setField(request, "role", "SUPER_ADMIN");
-        ReflectionTestUtils.setField(request, "status", "DORMANT");
-        ReflectionTestUtils.setField(request, "gradeName", "ROYAL");
+
+        AdminUserUpdateRequestDto request =
+                new AdminUserUpdateRequestDto("SUPER_ADMIN", "DORMANT", "ROYAL");
 
         UserGrade royalGrade = new UserGrade(2L, GradeName.ROYAL, 0.05, 100000);
 
@@ -256,11 +254,12 @@ class UserServiceImplTest {
         assertThat(dummyUser.getUserGrade()).isEqualTo(royalGrade);
     }
 
+
     @Test
     @DisplayName("관리자 - 회원 정보 수정 실패 (존재하지 않는 등급)")
     void updateUserByAdmin_Fail_GradeNotFound() {
-        AdminUserUpdateRequestDto request = new AdminUserUpdateRequestDto();
-        ReflectionTestUtils.setField(request, "gradeName", "ROYAL"); // Role, Status null
+        AdminUserUpdateRequestDto request =
+                new AdminUserUpdateRequestDto(null, null, "ROYAL");
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
         given(userGradeRepository.findByGradeName(GradeName.ROYAL)).willReturn(Optional.empty());
@@ -269,6 +268,7 @@ class UserServiceImplTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("존재하지 않는 등급입니다.");
     }
+
 
     @Test
     @DisplayName("관리자 - 회원 탈퇴 처리 성공")

@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,11 @@ public class UserGradeScheduler {
     private final OrderServiceClient orderServiceClient;
 
     @Scheduled(cron = "0 0 4 1 1,4,7,10 *") //1,4,7,10월 1일 4시정각
+    @SchedulerLock(
+            name = "user_grade_task",
+            lockAtLeastFor = "30s",
+            lockAtMostFor = "10m"
+    )
     @Transactional
     public void calculateQuarterlyGrades() {
         log.info("분기별 회원 등급 산정 시작");

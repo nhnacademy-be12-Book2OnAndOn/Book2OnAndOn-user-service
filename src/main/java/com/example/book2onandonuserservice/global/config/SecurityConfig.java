@@ -23,6 +23,7 @@ public class SecurityConfig {
     //보안필터 체인 설정
     //요청은 허용, 세션은 끔(인증은 Gateway에서 처리)
     @Bean
+    @SuppressWarnings("java:S4502")
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable) //JWT에서는 불필요한 CSRF 보안을 끔
                 .formLogin(AbstractHttpConfigurer::disable) //기본 로그인폼을 끔

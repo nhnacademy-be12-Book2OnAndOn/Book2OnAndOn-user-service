@@ -114,7 +114,7 @@ class AuthServiceImplTest {
         UserResponseDto response = authService.signUp(request);
 
         assertThat(response).isNotNull();
-        verify(rabbitTemplate).convertAndSend(eq(RabbitConfig.EXCHANGE), eq(RabbitConfig.ROUTING_KEY), eq(100L));
+        verify(rabbitTemplate).convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ROUTING_KEY, 100L);
     }
 
     @Test

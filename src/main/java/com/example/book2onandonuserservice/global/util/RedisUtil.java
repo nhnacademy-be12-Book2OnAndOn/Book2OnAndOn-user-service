@@ -15,8 +15,9 @@ public class RedisUtil {
     }
 
     public boolean hasKeyBlackList(String key) {
-        return redisTemplate.hasKey(key);
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
+
 
     //인증번호 저장을 위한 데이터 저장 로직
     public void setData(String key, String value, long duration) {

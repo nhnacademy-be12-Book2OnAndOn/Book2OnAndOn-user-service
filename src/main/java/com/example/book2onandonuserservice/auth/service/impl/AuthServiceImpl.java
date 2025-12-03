@@ -36,7 +36,6 @@ import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.time.LocalDate;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -60,6 +59,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final RedisUtil redisUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -110,7 +110,8 @@ public class AuthServiceImpl implements AuthService {
             throw new UserEmailDuplicateException();
         }
 
-        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+        int randomNum = secureRandom.nextInt(900000) + 100000;
+        String code = String.valueOf(randomNum);
 
         String key = RedisKeyPrefix.EMAIL_CODE.buildKey(cleanEmail);
         redisUtil.setData(key, code, 5 * 60 * 1000L);
@@ -292,10 +293,8 @@ public class AuthServiceImpl implements AuthService {
         Users user = usersRepository.findByNameAndEmail(request.name(), request.email())
                 .orElseThrow(() -> new RuntimeException("입력하신 정보와 일치하는 회원이 없습니다."));
 
-        //아이디 마스킹 처리
         String maskedId = maskUserId(user.getUserLoginId());
 
-        // 3. 마스킹된 아이디 반환
         return new FindIdResponseDto(maskedId);
     }
 
@@ -356,6 +355,7 @@ public class AuthServiceImpl implements AuthService {
 
     //임시 비밀번호 생성 로직
     private String generateTempPassword() {
+        String specialCharsStr = "@$!%*#?&";
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$!%*#?&";
         SecureRandom random = new SecureRandom();
 
@@ -368,9 +368,9 @@ public class AuthServiceImpl implements AuthService {
 
             String pwd = sb.toString();
 
-            if (pwd.matches(".*[A-Za-z].*") &&
-                    pwd.matches(".*\\d.*") &&
-                    pwd.matches(".*[@$!%*#?&].*")) {
+            if (pwd.chars().anyMatch(Character::isLetter) &&
+                    pwd.chars().anyMatch(Character::isDigit) &&
+                    pwd.chars().anyMatch(ch -> specialCharsStr.indexOf(ch) >= 0)) {
                 return pwd;
             }
         }

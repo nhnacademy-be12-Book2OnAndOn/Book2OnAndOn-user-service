@@ -14,8 +14,14 @@ public interface AuthService {
     //이메일 인증번호 발송
     void sendVerificationCode(String email);
 
+    //휴면 해제용 인증번호 발송
+    void sendDormantVerificationCode(String email);
+
     //인증번호 검증
     boolean verifyEmail(String email, String code);
+
+    //휴면 해제 처리 매서드
+    void unlockDormantAccount(String email, String code);
 
     //로컬 회원가입
     UserResponseDto signUp(LocalSignUpRequestDto request);

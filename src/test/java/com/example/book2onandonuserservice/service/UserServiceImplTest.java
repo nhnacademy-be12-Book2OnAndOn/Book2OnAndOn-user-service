@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.RestPage;
+import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
+import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
@@ -61,6 +63,9 @@ class UserServiceImplTest {
     @Mock
     private UserGradeRepository userGradeRepository;
 
+    @Mock
+    private PointHistoryService pointHistoryService;
+
     private Users dummyUser;
     private UserGrade dummyGrade;
 
@@ -68,27 +73,29 @@ class UserServiceImplTest {
     void setUp() {
         dummyGrade = new UserGrade(1L, GradeName.BASIC, 0.01, 0);
         dummyUser = new Users(
-                "testUser", "encodedPw", "Test Name", "test@test.com", "01012345678",
-                LocalDate.of(2000, 1, 1), dummyGrade
+                "testUser", "encodedPw", "Test Name", "test@test.com",
+                "01012345678", LocalDate.of(2000, 1, 1), dummyGrade
         );
+
         ReflectionTestUtils.setField(dummyUser, "userId", 1L);
         ReflectionTestUtils.setField(dummyUser, "status", Status.ACTIVE);
         ReflectionTestUtils.setField(dummyUser, "role", Role.USER);
         ReflectionTestUtils.setField(dummyUser, "nickname", "TestNick");
     }
 
-    // ==========================================
-    // 1. 내 정보 조회 (getMyInfo)
-    // ==========================================
+    // 내 정보 조회
     @Test
     @DisplayName("내 정보 조회 성공")
     void getMyInfo_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+        given(pointHistoryService.getMyCurrentPoint(1L))
+                .willReturn(new CurrentPointResponseDto(0));
 
         UserResponseDto response = userService.getMyInfo(1L);
 
         assertThat(response.userLoginId()).isEqualTo("testUser");
         assertThat(response.email()).isEqualTo("test@test.com");
+        assertThat(response.point()).isZero();
     }
 
     @Test
@@ -100,18 +107,17 @@ class UserServiceImplTest {
                 .isInstanceOf(UserNotFoundException.class);
     }
 
-    // ==========================================
-    // 2. 내 정보 수정 (updateMyInfo)
-    // ==========================================
+    // 내 정보 수정
     @Test
-    @DisplayName("내 정보 수정 성공 - 닉네임/이메일 변경 없음")
+    @DisplayName("내 정보 수정 성공 - 주요 정보 변경 없음")
     void updateMyInfo_Success_NoCriticalChange() {
-        // 기존 이메일/닉네임과 동일하게 요청
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "New Name", "test@test.com", "TestNick", "01099999999"
         );
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+        given(pointHistoryService.getMyCurrentPoint(1L))
+                .willReturn(new CurrentPointResponseDto(0));
 
         UserResponseDto response = userService.updateMyInfo(1L, request);
 
@@ -120,16 +126,17 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("내 정보 수정 성공 - 이메일/닉네임 변경 (중복 없음)")
+    @DisplayName("내 정보 수정 성공 - 이메일, 닉네임 변경")
     void updateMyInfo_Success_WithChange() {
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "New Name", "new@test.com", "NewNick", "01099999999"
         );
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        // 중복 체크 통과
         given(usersRepository.findByEmail("new@test.com")).willReturn(Optional.empty());
         given(usersRepository.findByNickname("NewNick")).willReturn(Optional.empty());
+        given(pointHistoryService.getMyCurrentPoint(1L))
+                .willReturn(new CurrentPointResponseDto(0));
 
         userService.updateMyInfo(1L, request);
 
@@ -143,9 +150,10 @@ class UserServiceImplTest {
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "Name", "duplicate@test.com", "Nick", "01099999999"
         );
+
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        // 다른 사용자가 해당 이메일 사용 중
-        given(usersRepository.findByEmail("duplicate@test.com")).willReturn(Optional.of(new Users()));
+        given(usersRepository.findByEmail("duplicate@test.com"))
+                .willReturn(Optional.of(new Users()));
 
         assertThatThrownBy(() -> userService.updateMyInfo(1L, request))
                 .isInstanceOf(UserEmailDuplicateException.class);
@@ -157,8 +165,10 @@ class UserServiceImplTest {
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "Name", "test@test.com", "DuplicateNick", "01099999999"
         );
+
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(usersRepository.findByNickname("DuplicateNick")).willReturn(Optional.of(new Users()));
+        given(usersRepository.findByNickname("DuplicateNick"))
+                .willReturn(Optional.of(new Users()));
 
         assertThatThrownBy(() -> userService.updateMyInfo(1L, request))
                 .isInstanceOf(UserNicknameDuplicationException.class);
@@ -174,15 +184,15 @@ class UserServiceImplTest {
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
         given(passwordEncoder.matches("encodedPw", "encodedPw")).willReturn(true);
-        given(passwordEncoder.encode("newPw")).willReturn("newEncodedPw");
+        given(passwordEncoder.encode("newPw")).willReturn("encodedNewPw");
 
         userService.changePassword(1L, request);
 
-        assertThat(dummyUser.getPassword()).isEqualTo("newEncodedPw");
+        assertThat(dummyUser.getPassword()).isEqualTo("encodedNewPw");
     }
 
     @Test
-    @DisplayName("비밀번호 변경 실패 - 현재 비밀번호 불일치")
+    @DisplayName("비밀번호 변경 실패 - 현재 비밀번호 틀림")
     void changePassword_Fail_Mismatch() {
         PasswordChangeRequestDto request = new PasswordChangeRequestDto("wrongPw", "newPw");
 
@@ -193,28 +203,20 @@ class UserServiceImplTest {
                 .isInstanceOf(PasswordMismatchException.class);
     }
 
-    // ==========================================
-    // 4. 회원 탈퇴 (deleteUser) - 본인 요청
-    // ==========================================
+    // 탈퇴
     @Test
     @DisplayName("회원 탈퇴 성공")
     void deleteUser_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
 
-        userService.deleteUser(1L, "개인 사유");
+        userService.deleteUser(1L, "사유");
 
-        // Assuming withdraw method sets status to CLOSED (Users 엔티티 로직 의존)
-        // 실제 Users.withDraw 구현 내용에 따라 검증 (보통 Status 변경됨)
-        // 여기선 verify로 withdraw 호출 여부만 검증하기엔 void라 상태값을 확인하는게 좋음
-        // (단, Users 엔티티 코드가 없으므로 가정하에 작성)
-        // ReflectionTestUtils.getField(dummyUser, "status");
+        assertThat(dummyUser.getStatus()).isEqualTo(Status.CLOSED);
     }
 
-    // ==========================================
-    // 5. 관리자 기능 (getAllUsers, getUserInfo, update, delete)
-    // ==========================================
+    // 관리자 기능
     @Test
-    @DisplayName("전체 회원 조회 (관리자)")
+    @DisplayName("관리자 - 전체 회원 조회")
     void getAllUsers_Success() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Users> page = new PageImpl<>(List.of(dummyUser));
@@ -228,61 +230,52 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("회원 상세 조회 (관리자)")
+    @DisplayName("관리자 - 회원 정보 조회")
     void getUserInfo_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+        given(pointHistoryService.getMyCurrentPoint(1L))
+                .willReturn(new CurrentPointResponseDto(0));
+
         UserResponseDto result = userService.getUserInfo(1L);
+
         assertThat(result.userLoginId()).isEqualTo("testUser");
     }
 
     @Test
-    @DisplayName("관리자 - 회원 정보 수정 성공 (Role, Status, Grade)")
+    @DisplayName("관리자 - 유저 정보 수정 성공")
     void updateUserByAdmin_Success() {
-
         AdminUserUpdateRequestDto request =
                 new AdminUserUpdateRequestDto("SUPER_ADMIN", "DORMANT", "ROYAL");
 
-        UserGrade royalGrade = new UserGrade(2L, GradeName.ROYAL, 0.05, 100000);
+        UserGrade royal = new UserGrade(2L, GradeName.ROYAL, 0.05, 100000);
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(userGradeRepository.findByGradeName(GradeName.ROYAL)).willReturn(Optional.of(royalGrade));
+        given(userGradeRepository.findByGradeName(GradeName.ROYAL)).willReturn(Optional.of(royal));
 
         userService.updateUserByAdmin(1L, request);
 
         assertThat(dummyUser.getRole()).isEqualTo(Role.SUPER_ADMIN);
         assertThat(dummyUser.getStatus()).isEqualTo(Status.DORMANT);
-        assertThat(dummyUser.getUserGrade()).isEqualTo(royalGrade);
+        assertThat(dummyUser.getUserGrade()).isEqualTo(royal);
     }
 
-
     @Test
-    @DisplayName("관리자 - 회원 정보 수정 실패 (존재하지 않는 등급)")
+    @DisplayName("관리자 - 등급 변경 실패 (없는 등급)")
     void updateUserByAdmin_Fail_GradeNotFound() {
         AdminUserUpdateRequestDto request =
                 new AdminUserUpdateRequestDto(null, null, "ROYAL");
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(userGradeRepository.findByGradeName(GradeName.ROYAL)).willReturn(Optional.empty());
+        given(userGradeRepository.findByGradeName(GradeName.ROYAL))
+                .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.updateUserByAdmin(1L, request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("존재하지 않는 등급입니다.");
     }
 
-
     @Test
-    @DisplayName("관리자 - 회원 탈퇴 처리 성공")
-    void deleteUserByAdmin_Success() {
-        given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-
-        userService.deleteUserByAdmin(1L, "불량 이용자");
-
-        // Users 엔티티의 withDraw 메서드가 호출되었는지 상태로 확인 필요
-        // assertThat(dummyUser.getStatus()).isEqualTo(Status.CLOSED); // 엔티티 로직에 따라 활성화
-    }
-
-    @Test
-    @DisplayName("관리자 - 회원 탈퇴 처리 실패 (이미 탈퇴함)")
+    @DisplayName("관리자 - 회원 탈퇴 실패 (이미 탈퇴)")
     void deleteUserByAdmin_Fail_AlreadyClosed() {
         ReflectionTestUtils.setField(dummyUser, "status", Status.CLOSED);
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
@@ -292,15 +285,24 @@ class UserServiceImplTest {
                 .hasMessageContaining("이미 탈퇴한 회원");
     }
 
-
     @Test
-    @DisplayName("회원 리뷰 조회 (Feign Client 위임)")
+    @DisplayName("관리자 - 회원 탈퇴 성공")
+    void deleteUserByAdmin_Success() {
+        given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+
+        userService.deleteUserByAdmin(1L, "관리자 사유");
+
+        assertThat(dummyUser.getStatus()).isEqualTo(Status.CLOSED);
+    }
+
+    // 유저 리뷰 조회
+    @Test
+    @DisplayName("회원 리뷰 조회 (Feign)")
     void getUserReviews_Success() {
         Pageable pageable = PageRequest.of(0, 10);
 
-        RestPage<BookReviewResponseDto> mockRestPage = mock(RestPage.class);
-
-        given(bookServiceClient.getUserReviews(1L, pageable)).willReturn(mockRestPage);
+        RestPage<BookReviewResponseDto> mockPage = mock(RestPage.class);
+        given(bookServiceClient.getUserReviews(1L, pageable)).willReturn(mockPage);
 
         Page<BookReviewResponseDto> result = userService.getUserReviews(1L, pageable);
 

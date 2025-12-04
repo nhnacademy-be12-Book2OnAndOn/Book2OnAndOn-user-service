@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.book2onandonuserservice.address.exception.InvalidVerificationCodeException;
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
@@ -24,10 +25,10 @@ import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepositor
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.impl.AuthServiceImpl;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
-import com.example.book2onandonuserservice.global.config.RabbitConfig;
 import com.example.book2onandonuserservice.global.service.EmailService;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
+import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Role;
@@ -37,6 +38,8 @@ import com.example.book2onandonuserservice.user.domain.entity.Users;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
+import com.example.book2onandonuserservice.user.exception.UserNotDormantException;
+import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
@@ -49,7 +52,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -66,20 +68,18 @@ class AuthServiceImplTest {
     private UserGradeRepository userGradeRepository;
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
-
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtTokenProvider jwtTokenProvider;
     @Mock
     private RedisUtil redisUtil;
-
     @Mock
     private EmailService emailService;
     @Mock
-    private RabbitTemplate rabbitTemplate;
-    @Mock
     private PaycoClient paycoClient;
+    @Mock
+    private PointHistoryService pointHistoryService;
 
     private UserGrade defaultGrade;
 
@@ -107,14 +107,15 @@ class AuthServiceImplTest {
 
         Users savedUser = new Users("testId", "encodedPW", "홍길동", "test@test.com", "01012341234",
                 LocalDate.of(2000, 1, 1), defaultGrade);
-        ReflectionTestUtils.setField(savedUser, "userId", 100L); // RabbitMQ 전송 확인용 ID 주입
+        ReflectionTestUtils.setField(savedUser, "userId", 100L);
 
         when(usersRepository.save(any(Users.class))).thenReturn(savedUser);
 
         UserResponseDto response = authService.signUp(request);
 
         assertThat(response).isNotNull();
-        verify(rabbitTemplate).convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ROUTING_KEY, 100L);
+
+        verify(pointHistoryService).earnSignupPoint(100L); // (추가)
     }
 
     @Test
@@ -151,7 +152,6 @@ class AuthServiceImplTest {
         when(usersRepository.existsByUserLoginId("newId")).thenReturn(false);
         when(usersRepository.findByEmail("unverified@e.com")).thenReturn(Optional.empty());
 
-        // Redis에 인증 정보 없음 (null)
         String verifiedKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey("unverified@e.com");
         when(redisUtil.getData(verifiedKey)).thenReturn(null);
 
@@ -369,4 +369,82 @@ class AuthServiceImplTest {
         verify(user).changePassword("encodedTempPw");
         verify(emailService).sendMail(eq("email"), anyString(), anyString());
     }
+
+    // 휴면 해제 관련 테스트
+
+    @Test
+    @DisplayName("휴면 해제 성공 - 인증번호 일치 시 정상 해제")
+    void unlockDormantAccount_success() {
+        String email = "dormant@test.com";
+        String code = "123456";
+        String key = RedisKeyPrefix.EMAIL_DORMANT_CODE.buildKey(email);
+
+        when(redisUtil.getData(key)).thenReturn(code);
+
+        Users user = mock(Users.class);
+        when(usersRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(user.getStatus()).thenReturn(Status.DORMANT);
+
+        authService.unlockDormantAccount(email, code);
+
+        verify(redisUtil).deleteData(key);
+        verify(user).changeStatus(Status.ACTIVE);
+        verify(user).updateLastLogin();
+    }
+
+    @Test
+    @DisplayName("휴면 해제 실패 - 인증번호 불일치")
+    void unlockDormantAccount_fail_invalidCode() {
+        String email = "dormant@test.com";
+        String key = RedisKeyPrefix.EMAIL_DORMANT_CODE.buildKey(email);
+
+        when(redisUtil.getData(key)).thenReturn(null);
+
+        assertThatThrownBy(() -> authService.unlockDormantAccount(email, "000000"))
+                .isInstanceOf(InvalidVerificationCodeException.class);
+    }
+
+    @Test
+    @DisplayName("휴면 해제 인증번호 발송 성공 - 정상 케이스")
+    void sendDormantVerificationCode_success() {
+        String email = "dormant@test.com";
+        Users user = mock(Users.class);
+
+        // DB에 유저 있음 + 상태 DORMANT
+        when(usersRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(user.getStatus()).thenReturn(Status.DORMANT);
+
+        authService.sendDormantVerificationCode(email);
+
+        // Redis 저장된 인증번호 검증
+        verify(redisUtil).setData(anyString(), anyString(), anyLong());
+
+        // 이메일 발송 호출 여부
+        verify(emailService).sendMail(eq(email), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("휴면 해제 인증번호 발송 실패 - 휴면 계정이 아님")
+    void sendDormantVerificationCode_fail_notDormant() {
+        String email = "active@test.com";
+        Users user = mock(Users.class);
+
+        when(usersRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(user.getStatus()).thenReturn(Status.ACTIVE);
+
+        assertThatThrownBy(() -> authService.sendDormantVerificationCode(email))
+                .isInstanceOf(UserNotDormantException.class);
+    }
+
+    @Test
+    @DisplayName("휴면 해제 인증번호 발송 실패 - 이메일 없음")
+    void sendDormantVerificationCode_fail_notFound() {
+        String email = "unknown@test.com";
+        when(usersRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.sendDormantVerificationCode(email))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+
 }

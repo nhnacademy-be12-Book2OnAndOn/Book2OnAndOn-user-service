@@ -1,6 +1,8 @@
 package com.example.book2onandonuserservice.global.scheduler;
 
 import com.example.book2onandonuserservice.global.config.RabbitConfig;
+import com.example.book2onandonuserservice.user.domain.entity.Role;
+import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.time.LocalDate;
 import java.util.List;
@@ -43,7 +45,14 @@ public class BirthdayCouponScheduler {
             // DB 조회
             // UserRepository에서 생일자 찾는 쿼리 만들어야 함
             // Slice<Long> findIdsByBirthMonth(Pageable pageable) Pageable 매개변수로 받는걸로
-            Slice<Long> idSlice = userRepository.findIdsByBirthMonth(currentMonth, pageRequest);
+            List<Status> targetStatuses = List.of(Status.ACTIVE, Status.DORMANT);
+
+            Slice<Long> idSlice = userRepository.findIdsByBirthMonth(
+                    currentMonth,
+                    Role.USER,
+                    targetStatuses,
+                    pageRequest
+            );
 
             // 메시지 전송
             List<Long> ids = idSlice.getContent();

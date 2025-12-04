@@ -196,4 +196,38 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("인증 실패"));
     }
+
+    // 휴면 해제 인증번호 발송
+    @Test
+    @DisplayName("휴면 해제 인증번호 발송 성공 (200 OK)")
+    void sendDormantVerification_Success() throws Exception {
+        String email = "dormant@test.com";
+
+        mockMvc.perform(post("/auth/dormant/email/send")
+                        .with(csrf())
+                        .param("email", email))
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        verify(authService).sendDormantVerificationCode(email);
+    }
+
+    // 휴면 해제 처리 성공
+    @Test
+    @DisplayName("휴면 해제 성공 (200 OK)")
+    void unlockDormantAccount_Success() throws Exception {
+        String email = "dormant@test.com";
+        String code = "123456";
+
+        mockMvc.perform(post("/auth/dormant/unlock")
+                        .with(csrf())
+                        .param("email", email)
+                        .param("code", code))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string("휴면 상태가 해제되었습니다."));
+
+        verify(authService).unlockDormantAccount(email, code);
+    }
+
 }

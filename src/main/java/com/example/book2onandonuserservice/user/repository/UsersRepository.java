@@ -1,7 +1,9 @@
 package com.example.book2onandonuserservice.user.repository;
 
+import com.example.book2onandonuserservice.user.domain.entity.Role;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +38,10 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     //아이디 + 이메일로 찾기 (비밀번호 찾기)
     Optional<Users> findByUserLoginIdAndEmail(String userLoginId, String email);
 
-    @Query("SELECT u.userId FROM Users u WHERE MONTH(u.birth) = :month")
-    Slice<Long> findIdsByBirthMonth(@Param("month") int month, Pageable pageable);
+    @Query("SELECT u.userId FROM Users u WHERE MONTH(u.birth) = :month AND u.role = :role AND u.status IN :statuses")
+    Slice<Long> findIdsByBirthMonth(@Param("month") int month, @Param("role") Role role,
+                                    @Param("statuses") List<Status> statuses, Pageable pageable);
+
+    // ACTIVE면서, 마지막 로그인 시간이 3개월 전인 회원 조회
+    List<Users> findByStatusAndLastLoginAtBefore(Status status, LocalDateTime criterionDate);
 }

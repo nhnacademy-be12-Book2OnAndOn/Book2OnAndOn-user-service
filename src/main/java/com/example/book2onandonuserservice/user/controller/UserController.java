@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     private final UserService userService;
 
-    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String USER_ID_HEADER = "X-USER-ID";
 
     //내 정보 조회
     @GetMapping("/users/me")

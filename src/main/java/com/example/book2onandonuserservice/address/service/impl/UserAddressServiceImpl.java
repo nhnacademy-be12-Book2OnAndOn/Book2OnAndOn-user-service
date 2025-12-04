@@ -143,12 +143,10 @@ public class UserAddressServiceImpl implements UserAddressService {
                 request.getUserAddressDetail()
         );
 
-        if (request.getIsDefault()) {
-            if (!address.isDefault()) {
-                userAddressRepository.findByUserAndIsDefaultTrue(user)
-                        .ifPresent(old -> old.changeDefaultAddress(false));
-                address.changeDefaultAddress(true);
-            }
+        if (request.getIsDefault() && !address.isDefault()) {
+            userAddressRepository.findByUserAndIsDefaultTrue(user)
+                    .ifPresent(old -> old.changeDefaultAddress(false));
+            address.changeDefaultAddress(true);
         }
 
         return convertToResponse(address);

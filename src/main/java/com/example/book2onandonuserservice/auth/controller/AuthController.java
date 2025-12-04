@@ -96,4 +96,19 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 실패");
         }
     }
+
+    //휴면 해제 인증번호 발송
+    @PostMapping("/dormant/email/send")
+    public ResponseEntity<Void> sendDormanetVerification(@RequestParam String email) {
+        authService.sendDormantVerificationCode(email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/dormant/unlock")
+    public ResponseEntity<String> unlockDormantAccount(@RequestParam String email, @RequestParam String code) {
+        authService.unlockDormantAccount(email, code);
+        return ResponseEntity.ok("휴면 상태가 해제되었습니다.");
+    }
+
+
 }

@@ -4,7 +4,7 @@ import com.example.book2onandonuserservice.address.exception.AddressLimitExceede
 import com.example.book2onandonuserservice.address.exception.AddressNameDuplicateException;
 import com.example.book2onandonuserservice.address.exception.AddressNotFoundException;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
-import com.example.book2onandonuserservice.global.dto.ErrorResponseDto;
+import com.example.book2onandonuserservice.global.dto.ErrorResponse;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InactivePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
@@ -25,9 +25,12 @@ import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
+import com.example.book2onandonuserservice.user.exception.UserNotDormantException;
 import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -39,9 +42,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     //400 Bad Request
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDto> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
-        ErrorResponseDto response = new ErrorResponseDto("INVALID_INPUT", errorMessage);
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "INVALID_INPUT",
+                errorMessage);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -64,10 +71,17 @@ public class GlobalExceptionHandler {
             PointRangeExceededException.class,
             PointAlreadyUsedForOrderException.class,
             InsufficientPointException.class,
-            InactivePointPolicyException.class
+            InactivePointPolicyException.class,
+            UserNotDormantException.class,
+            BadRequestException.class
     })
-    public ResponseEntity<ErrorResponseDto> handleBadRequestExceptions(RuntimeException ex) {
-        ErrorResponseDto response = new ErrorResponseDto("BAD_REQUEST", ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "BAD_REQUEST",
+                ex.getMessage()
+        );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -76,8 +90,13 @@ public class GlobalExceptionHandler {
             AuthenticationFailedException.class,
             InvalidAuthenticationException.class
     })
-    public ResponseEntity<ErrorResponseDto> handleAuthenticationFailed(AuthenticationFailedException ex) {
-        ErrorResponseDto response = new ErrorResponseDto("AUTH_FAILED", ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleAuthenticationFailed(RuntimeException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "AUTH_FAILED",
+                ex.getMessage()
+        );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
@@ -86,8 +105,13 @@ public class GlobalExceptionHandler {
             UserDormantException.class,
             UserWithdrawnException.class
     })
-    public ResponseEntity<ErrorResponseDto> handleAccountStatusException(UserDormantException ex) {
-        ErrorResponseDto response = new ErrorResponseDto("ACCESS_DENIED", ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleAccountStatusException(RuntimeException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "ACCESS_DENIED",
+                ex.getMessage()
+        );
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
@@ -98,22 +122,39 @@ public class GlobalExceptionHandler {
             PointPolicyNotFoundException.class,
             GradeNotFoundException.class
     })
-    public ResponseEntity<ErrorResponseDto> handlerNotFoundException(RuntimeException ex) {
-        ErrorResponseDto response = new ErrorResponseDto("NOT_FOUND", ex.getMessage());
+    public ResponseEntity<ErrorResponse> handlerNotFoundException(RuntimeException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "NOT_FOUND",
+                ex.getMessage()
+        );
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     // 409 Conflict
     @ExceptionHandler(SignupPointAlreadyGrantedException.class)
-    public ResponseEntity<ErrorResponseDto> handleSignupPointAlreadyGranted(SignupPointAlreadyGrantedException ex) {
-        ErrorResponseDto response = new ErrorResponseDto("CONFLICT", ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleSignupPointAlreadyGranted(RuntimeException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "CONFLICT",
+                ex.getMessage()
+        );
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+
     //500 Internal Server Error
-    public ResponseEntity<ErrorResponseDto> handleAllExceptions(Exception ex) {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
         log.error("시스템 오류 발생: " + ex); //서버 로그에 로그를 남김
-        ErrorResponseDto response = new ErrorResponseDto("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.");
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "INTERNAL_SERVER_ERROR",
+                "서버 오류가 발생했습니다."
+        );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

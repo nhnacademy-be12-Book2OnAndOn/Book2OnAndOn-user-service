@@ -1,8 +1,8 @@
 package com.example.book2onandonuserservice.user.service.impl;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
-import com.example.book2onandonuserservice.global.client.PointServiceClient;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
+import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
@@ -38,7 +38,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final BookServiceClient bookServiceClient;
     private final UserGradeRepository userGradeRepository;
-    private final PointServiceClient pointServiceClient; // [추가] 포인트 조회용
+    private final PointHistoryService pointHistoryService;
 
     private Users findUserOrThrow(Long userId) {
         return usersRepository.findById(userId)
@@ -47,10 +47,10 @@ public class UserServiceImpl implements UserService {
 
     private Long fetchUserPoint(Long userId) {
         try {
-            CurrentPointResponseDto response = pointServiceClient.getCurrentPoint(userId);
+            CurrentPointResponseDto response = pointHistoryService.getMyCurrentPoint(userId);
             return (long) response.getCurrentPoint();
         } catch (Exception e) {
-            log.warn("포인트 서비스 조회 실패 (userId={}): {}", userId, e.getMessage());
+            log.warn("포인트 조회 실패 (userId={}): {}", userId, e.getMessage());
             return 0L;
         }
     }

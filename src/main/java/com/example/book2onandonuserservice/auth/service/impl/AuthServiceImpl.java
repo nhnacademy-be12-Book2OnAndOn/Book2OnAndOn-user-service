@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.auth.service.impl;
 
+import com.example.book2onandonuserservice.address.exception.InvalidVerificationCodeException;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoLoginRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoMemberResponse;
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoTokenResponse;
@@ -18,10 +19,10 @@ import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepositor
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
-import com.example.book2onandonuserservice.global.config.RabbitConfig;
 import com.example.book2onandonuserservice.global.service.EmailService;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
+import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -30,6 +31,8 @@ import com.example.book2onandonuserservice.user.domain.entity.Users;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
+import com.example.book2onandonuserservice.user.exception.UserNotDormantException;
+import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
@@ -38,7 +41,6 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -55,11 +57,11 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final PaycoClient paycoClient;
-    private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
     private final RedisUtil redisUtil;
     private final RefreshTokenRepository refreshTokenRepository;
     private static final SecureRandom secureRandom = new SecureRandom();
+    private final PointHistoryService pointHistoryService;
 
     @Value("${payco.client-id}")
     private String paycoClientId;
@@ -120,6 +122,28 @@ public class AuthServiceImpl implements AuthService {
                 "인증번호는 <b>" + code + "</b> 입니다.");
     }
 
+    // 휴면 해제용 인증번호 발송
+    @Override
+    public void sendDormantVerificationCode(String email) {
+        String cleanEmail = email.trim();
+        Users user = usersRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new UserNotFoundException(0L));
+
+        if (user.getStatus() != Status.DORMANT) {
+            throw new UserNotDormantException();
+        }
+
+        int randomNum = secureRandom.nextInt(900000) + 100000;
+        String code = String.valueOf(randomNum);
+
+        String key = RedisKeyPrefix.EMAIL_DORMANT_CODE.buildKey(cleanEmail);
+        redisUtil.setData(key, code, 5 * 60 * 1000L); // 5분 유효
+
+        emailService.sendMail(cleanEmail, "[Book2OnAndOn] 휴면 해제 인증번호",
+                "휴면 상태를 해제하려면 인증번호 <b>" + code + "</b>를 입력해주세요.");
+    }
+
+
     //인증번호 검증
     @Override
     public boolean verifyEmail(String email, String code) {
@@ -135,6 +159,28 @@ public class AuthServiceImpl implements AuthService {
         redisUtil.setData(verifiedKey, "true", 30 * 60 * 1000L);
         redisUtil.deleteData(codeKey);
         return true;
+    }
+
+    //휴면 해제 처리 매서드
+    @Override
+    @Transactional
+    public void unlockDormantAccount(String email, String code) {
+        String key = RedisKeyPrefix.EMAIL_DORMANT_CODE.buildKey(email);
+        String savedCode = redisUtil.getData(key);
+
+        if (savedCode == null || !savedCode.equals(code)) {
+            throw new InvalidVerificationCodeException();
+        }
+
+        redisUtil.deleteData(key);
+
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(0L));
+
+        if (user.getStatus() == Status.DORMANT) {
+            user.changeStatus(Status.ACTIVE);
+            user.updateLastLogin();
+        }
     }
 
     //로컬 회원가입
@@ -172,13 +218,12 @@ public class AuthServiceImpl implements AuthService {
         );
         Users savedUser = usersRepository.save(newUser);
         try {
-            rabbitTemplate.convertAndSend(
-                    RabbitConfig.EXCHANGE,
-                    RabbitConfig.ROUTING_KEY,
-                    savedUser.getUserId()
-            );
+            pointHistoryService.earnSignupPoint(savedUser.getUserId());
+            log.info("회원가입 포인트 적립 완료: userId={}", savedUser.getUserId());
         } catch (Exception e) {
-            log.warn("RabbitMQ 비활성화 모드 - 메시지 전송 스킵");
+            // 포인트 적립 실패해도 회원가입은 롤백되지 않게 하려면 try-catch 유지
+            // (단, @Transactional 안이라 예외 던지면 가입도 롤백됨. 정책에 따라 결정)
+            log.warn("회원가입 포인트 적립 실패: {}", e.getMessage());
         }
 
         //인증정보 저장

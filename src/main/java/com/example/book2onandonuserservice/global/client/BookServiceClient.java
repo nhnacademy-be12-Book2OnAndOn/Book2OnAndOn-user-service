@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.global.client;
 
 import com.example.book2onandonuserservice.global.dto.RestPage;
 import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewResponseDto;
+import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,4 +21,7 @@ public interface BookServiceClient {
     @DeleteMapping("/books/reviews/{reviewId}")
     void deleteReview(@PathVariable("reviewId") Long reviewId,
                       @RequestHeader("X-User-Id") Long userId);
+
+    @GetMapping("/internal/users/likes/me")
+    List<Long> getMyLikedBooks(@RequestHeader("X-User-Id") Long userId);
 }

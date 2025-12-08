@@ -2,13 +2,16 @@ package com.example.book2onandonuserservice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.RestPage;
+import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
@@ -65,6 +68,10 @@ class UserServiceImplTest {
 
     @Mock
     private PointHistoryService pointHistoryService;
+
+    @Mock
+    private RedisUtil redisUtil;
+
 
     private Users dummyUser;
     private UserGrade dummyGrade;
@@ -138,11 +145,16 @@ class UserServiceImplTest {
         given(pointHistoryService.getMyCurrentPoint(1L))
                 .willReturn(new CurrentPointResponseDto(0));
 
+        given(redisUtil.getData(anyString())).willReturn("true");
+
+        doNothing().when(redisUtil).deleteData(anyString());
+
         userService.updateMyInfo(1L, request);
 
         assertThat(dummyUser.getEmail()).isEqualTo("new@test.com");
         assertThat(dummyUser.getNickname()).isEqualTo("NewNick");
     }
+
 
     @Test
     @DisplayName("내 정보 수정 실패 - 이메일 중복")

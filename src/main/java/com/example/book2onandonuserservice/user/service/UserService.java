@@ -5,6 +5,7 @@ import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChang
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -35,4 +36,7 @@ public interface UserService {
 
     //(공개) 회원 리뷰 목록 조회
     Page<BookReviewResponseDto> getUserReviews(Long userId, Pageable pageable);
+
+    // 회원 좋아요 목록 조회
+    List<Long> getMyLikedBooks(Long userId);
 }

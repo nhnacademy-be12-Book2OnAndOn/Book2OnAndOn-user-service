@@ -6,6 +6,7 @@ import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewRe
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.service.UserService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -73,5 +74,13 @@ public class UserController {
     ) {
         Page<BookReviewResponseDto> reviews = userService.getUserReviews(userId, pageable);
         return ResponseEntity.ok(reviews);
+    }
+
+    // 좋아요 목록 조회
+    @GetMapping("/users/me/likes")
+    public ResponseEntity<List<Long>> getMyLikedBooks(
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
+        return ResponseEntity.ok(userService.getMyLikedBooks(userId));
     }
 }

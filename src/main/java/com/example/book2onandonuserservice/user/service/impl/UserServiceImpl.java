@@ -1,6 +1,9 @@
 package com.example.book2onandonuserservice.user.service.impl;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
+import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
+import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
@@ -39,6 +42,7 @@ public class UserServiceImpl implements UserService {
     private final BookServiceClient bookServiceClient;
     private final UserGradeRepository userGradeRepository;
     private final PointHistoryService pointHistoryService;
+    private final RedisUtil redisUtil;
 
     private Users findUserOrThrow(Long userId) {
         return usersRepository.findById(userId)
@@ -68,9 +72,23 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto updateMyInfo(Long userId, UserUpdateRequestDto request) {
         Users user = findUserOrThrow(userId);
 
-        if (!Objects.equals(user.getEmail(), request.email())
-                && usersRepository.findByEmail(request.email()).isPresent()) {
-            throw new UserEmailDuplicateException();
+        if (!Objects.equals(user.getEmail(), request.email())) {
+            // 1. 중복 검사
+            if (usersRepository.findByEmail(request.email()).isPresent()) {
+                throw new UserEmailDuplicateException();
+            }
+
+            // 2. [추가] 인증 여부 검사 (Redis 확인)
+            // 회원가입 때 쓴 키 패턴: "user:email:verified:{email}" -> "true"
+            String verifiedKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey(request.email());
+            String isVerified = redisUtil.getData(verifiedKey);
+
+            if (!"true".equals(isVerified)) {
+                throw new RuntimeException("이메일 인증이 완료되지 않았습니다.");
+            }
+
+            // 인증 확인 후 Redis 데이터 삭제 (재사용 방지)
+            redisUtil.deleteData(verifiedKey);
         }
 
         if (!Objects.equals(user.getNickname(), request.nickname())
@@ -165,4 +183,12 @@ public class UserServiceImpl implements UserService {
     public Page<BookReviewResponseDto> getUserReviews(Long userId, Pageable pageable) {
         return bookServiceClient.getUserReviews(userId, pageable);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<MyLikedBookResponseDto> getMyLikedBooks(Long userId, Pageable pageable) {
+        return bookServiceClient.getMyLikedBooks(userId, pageable);
+    }
+
+
 }

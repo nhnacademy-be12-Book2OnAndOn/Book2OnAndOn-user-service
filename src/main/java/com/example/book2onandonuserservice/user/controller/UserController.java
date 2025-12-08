@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.user.controller;
 
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewResponseDto;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -73,5 +75,14 @@ public class UserController {
     ) {
         Page<BookReviewResponseDto> reviews = userService.getUserReviews(userId, pageable);
         return ResponseEntity.ok(reviews);
+    }
+
+    // 좋아요 목록 조회
+    @GetMapping("/users/me/likes")
+    public ResponseEntity<Page<MyLikedBookResponseDto>> getMyLikedBooks(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(userService.getMyLikedBooks(userId, pageable));
     }
 }

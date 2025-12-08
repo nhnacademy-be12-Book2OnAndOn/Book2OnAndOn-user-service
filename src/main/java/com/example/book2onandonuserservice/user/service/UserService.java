@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.user.service;
 
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
@@ -35,4 +36,7 @@ public interface UserService {
 
     //(공개) 회원 리뷰 목록 조회
     Page<BookReviewResponseDto> getUserReviews(Long userId, Pageable pageable);
+
+    // 회원 좋아요 목록 조회
+    Page<MyLikedBookResponseDto> getMyLikedBooks(Long userId, Pageable pageable);
 }

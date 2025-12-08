@@ -58,15 +58,16 @@ public class UserGradeScheduler {
         for (Users user : activeUsers) {
             try {
                 Long netAmount = 0L;
-            /* OrderService 연결시
+                // OrderService 연결시
                 try {
                     netAmount = orderServiceClient.getNetOrderAmount(user.getUserId(), fromDate, toDate);
-                    if (netAmount == null) netAmount = 0L;
+                    if (netAmount == null) {
+                        netAmount = 0L;
+                    }
                 } catch (Exception e) {
                     log.warn("주문 서비스 통신 실패 (User ID: {}) - 0원으로 처리", user.getUserId());
                     netAmount = 0L;
                 }
-                */
 
                 // 등급 판별 로직
                 for (UserGrade policy : gradePolicies) {

@@ -1,6 +1,7 @@
 package com.example.book2onandonuserservice.user.service.impl;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
@@ -22,7 +23,6 @@ import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import com.example.book2onandonuserservice.user.service.UserService;
-import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -186,7 +186,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Long> getMyLikedBooks(Long userId) {
-        return bookServiceClient.getMyLikedBooks(userId);
+    public Page<MyLikedBookResponseDto> getMyLikedBooks(Long userId, Pageable pageable) {
+        return bookServiceClient.getMyLikedBooks(userId, pageable);
     }
+
+
 }

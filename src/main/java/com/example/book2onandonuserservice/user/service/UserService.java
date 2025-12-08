@@ -1,11 +1,11 @@
 package com.example.book2onandonuserservice.user.service;
 
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.BookReviewResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -38,5 +38,5 @@ public interface UserService {
     Page<BookReviewResponseDto> getUserReviews(Long userId, Pageable pageable);
 
     // 회원 좋아요 목록 조회
-    List<Long> getMyLikedBooks(Long userId);
+    Page<MyLikedBookResponseDto> getMyLikedBooks(Long userId, Pageable pageable);
 }

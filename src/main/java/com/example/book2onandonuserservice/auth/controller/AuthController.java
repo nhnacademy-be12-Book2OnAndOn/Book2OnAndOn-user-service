@@ -67,8 +67,8 @@ public class AuthController {
 
     //아이디찾기
     @PostMapping("/find-id")
-    public ResponseEntity<FindIdResponseDto> findId(@Valid @RequestBody FindIdRequestDto request) {
-        FindIdResponseDto response = authService.findId(request);
+    public ResponseEntity<FindIdResponseDto> findMemberIdByNameAndEmail(@Valid @RequestBody FindIdRequestDto request) {
+        FindIdResponseDto response = authService.findMemberIdByNameAndEmail(request);
         return ResponseEntity.ok(response);
     }
 

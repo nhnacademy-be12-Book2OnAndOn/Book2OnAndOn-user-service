@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 public class MyLikedBookResponseDto {
     private Long bookLikeId;
     private LocalDateTime createdAt;
-    private BookListResponseDto bookInfo; // 위에서 만든 BookListResponseDto 사용
+    private BookListResponseDto bookInfo;
 }

@@ -6,6 +6,7 @@ import com.example.book2onandonuserservice.user.domain.entity.Users;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +45,6 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     // ACTIVE면서, 마지막 로그인 시간이 3개월 전인 회원 조회
     List<Users> findByStatusAndLastLoginAtBefore(Status status, LocalDateTime criterionDate);
+
+    Page<Users> findByStatus(Status status, Pageable pageable);
 }

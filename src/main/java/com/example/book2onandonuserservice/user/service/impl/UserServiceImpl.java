@@ -16,6 +16,7 @@ import com.example.book2onandonuserservice.user.domain.entity.Role;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.UserGrade;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
@@ -84,7 +85,7 @@ public class UserServiceImpl implements UserService {
             String isVerified = redisUtil.getData(verifiedKey);
 
             if (!"true".equals(isVerified)) {
-                throw new RuntimeException("이메일 인증이 완료되지 않았습니다.");
+                throw new EmailNotVerifiedException();
             }
 
             // 인증 확인 후 Redis 데이터 삭제 (재사용 방지)

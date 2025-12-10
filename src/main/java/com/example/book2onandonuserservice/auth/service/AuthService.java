@@ -36,7 +36,7 @@ public interface AuthService {
     void logout(String accessToken);
 
     //아이디찾기
-    FindIdResponseDto findId(FindIdRequestDto request);
+    FindIdResponseDto findMemberIdByNameAndEmail(FindIdRequestDto request);
 
     //임시비밀번호
     void issueTemporaryPassword(FindPasswordRequestDto request);

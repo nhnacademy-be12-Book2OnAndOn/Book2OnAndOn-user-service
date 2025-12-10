@@ -42,7 +42,6 @@ public class Users {
     private String name;
 
     @Column(name = "user_email", unique = true, length = 500)
-    @Convert(converter = EncryptStringConverter.class)
     private String email;
 
     @Column(name = "user_phone", length = 255)

@@ -4,6 +4,8 @@ import com.example.book2onandonuserservice.address.exception.AddressLimitExceede
 import com.example.book2onandonuserservice.address.exception.AddressNameDuplicateException;
 import com.example.book2onandonuserservice.address.exception.AddressNotFoundException;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
+import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingException;
+import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponse;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InactivePointPolicyException;
@@ -18,6 +20,7 @@ import com.example.book2onandonuserservice.point.exception.ReturnAlreadyProcesse
 import com.example.book2onandonuserservice.point.exception.ReviewAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
 import com.example.book2onandonuserservice.point.exception.UserIdMismatchException;
+import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedException;
 import com.example.book2onandonuserservice.user.exception.GradeNameDuplicateException;
 import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
@@ -61,7 +64,6 @@ public class GlobalExceptionHandler {
             UserNicknameDuplicationException.class,
             PasswordMismatchException.class,
             GradeNameDuplicateException.class,
-
             DuplicatePointPolicyException.class,
             InvalidPointPolicyException.class,
             UserIdMismatchException.class,
@@ -73,6 +75,8 @@ public class GlobalExceptionHandler {
             InsufficientPointException.class,
             InactivePointPolicyException.class,
             UserNotDormantException.class,
+            PaycoInfoMissingException.class,
+            EmailNotVerifiedException.class,
             BadRequestException.class
     })
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
@@ -156,6 +160,18 @@ public class GlobalExceptionHandler {
                 "서버 오류가 발생했습니다."
         );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    //502 Bad Gateway
+    @ExceptionHandler(PaycoServerException.class)
+    public ResponseEntity<ErrorResponse> handlePaycoServerException(PaycoServerException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_GATEWAY.value(),
+                "BAD_REQUEST",
+                ex.getMessage()
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_GATEWAY);
     }
 
 }

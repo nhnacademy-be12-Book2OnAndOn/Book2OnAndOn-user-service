@@ -32,12 +32,14 @@ public class PointHistoryMapper {
             Users user,
             PointReason reason,
             int change,
-            int newTotal,
+            int currentPoint,
             Long orderId,
             Long reviewId,
             Long returnId,
             LocalDateTime expiredAt
     ) {
+        int newTotal = currentPoint + change;
+
         return PointHistory.builder()
                 .user(user)
                 .pointReason(reason)
@@ -57,11 +59,13 @@ public class PointHistoryMapper {
             Users user,
             PointReason reason,
             int change,       // 음수
-            int newTotal,
+            int currentPoint,
             Long orderId,
             Long reviewId,
             Long returnId
     ) {
+        int newTotal = currentPoint + change;
+
         return PointHistory.builder()
                 .user(user)
                 .pointReason(reason)

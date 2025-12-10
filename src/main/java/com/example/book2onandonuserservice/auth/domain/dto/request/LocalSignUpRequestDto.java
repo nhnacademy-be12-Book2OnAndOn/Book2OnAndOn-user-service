@@ -27,6 +27,7 @@ public record LocalSignUpRequestDto(
 
         @NotBlank(message = "연락처는 필수입니다.")
         @Size(max = 11, message = "전화번호는 11자 이내로 작성해주세요.")
+        @Pattern(regexp = "^\\d{11}$", message = "전화번호는 '-' 없이 11자리 숫자여야 합니다.") // 이 줄을 추가
         String phone,
 
         LocalDate birth

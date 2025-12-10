@@ -10,7 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-// 7일 내 소멸 예정 포인트 조회
 public class ExpiringPointResponseDto {
     private int expiringAmount;
     private LocalDateTime fromDate;

@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPoin
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.ExpiringPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointSummaryResponseDto;
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
@@ -18,7 +19,6 @@ import com.example.book2onandonuserservice.point.support.pointHistory.PointCalcu
 import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryMapper;
 import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryValidator;
 import com.example.book2onandonuserservice.point.support.pointHistory.UserReferenceLoader;
-import com.example.book2onandonuserservice.point.support.pointPolicy.PointPolicyValidator;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,10 +39,9 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     private final PointCalculationHelper pointCalculationHelper;
     private final PointHistoryMapper pointHistoryMapper;
     private final PointHistoryValidator pointHistoryValidator;
-    private final PointPolicyValidator pointPolicyValidator;
 
     // TODO 탈퇴 시 포인트 삭제(userId만 받기)
-    // TODO view 필요한 정보 -> 보유 포인트(totalPoint), 이번달 적립, 이번달 소멸, 소멸 예정 포인트, 포인트 내역(필터: 전체, 사용, 적립 -> status)
+    // TODO view 필요한 정보 -> 보유 포인트(totalPoint), 이번달 적립, 이번달 사용, 소멸 예정 포인트, 포인트 내역(필터: 전체, 사용, 적립)
 
     // ===== 공통 유틸 =====
     // 1. 현재 보유 포인트 "숫자만" 필요할 때 사용하는 내부 헬퍼
@@ -583,6 +582,66 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         pointHistoryRepository.save(history);
 
         return new EarnPointResponseDto(amount, newTotal, PointReason.ADMIN_ADJUST);
+    }
+
+    // 9. 회원탈퇴 시 포인트 삭제 -> 전액 소멸(WITHDRAW) 이력으로 남긴 뒤 잔액만 0 만들기
+    @Override
+    public void expireAllPointsForWithdraw(Long userId) {
+        List<PointHistory> rows = pointHistoryValidator.getAllRemainingEarnRows(userId);
+        if (rows.isEmpty()) {
+            return;
+        }
+
+        int expireTotal = rows.stream()
+                .mapToInt(row -> row.getRemainingPoint() == null ? 0 : row.getRemainingPoint())
+                .sum();
+
+        if (expireTotal <= 0) {
+            return;
+        }
+
+        for (PointHistory row : rows) {
+            row.setRemainingPoint(0);
+        }
+
+        int latestTotal = getLatestTotal(userId);
+        int newTotal = latestTotal - expireTotal;
+
+        Users user = userReferenceLoader.getReference(userId);
+
+        PointHistory expireHistory = pointHistoryMapper.toUseOrDeductEntity(
+                user,
+                PointReason.WITHDRAW,
+                -expireTotal,
+                newTotal,
+                null,
+                null,
+                null
+        );
+        pointHistoryRepository.save(expireHistory);
+    }
+
+    @Override
+    public PointSummaryResponseDto getMyPointSummary(Long userId) {
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime from = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+
+        int currentTotal = getLatestTotal(userId);
+        int earnedThisMonth = pointHistoryRepository.sumEarnedInPeriod(userId, from, now);
+        int usedThisMonth = pointHistoryRepository.sumUsedInPeriod(userId, from, now);
+
+        // 이미 구현돼 있는 메서드 재사용
+        ExpiringPointResponseDto expiring = getExpiringPoints(userId, 7);
+
+        return new PointSummaryResponseDto(
+                currentTotal,
+                earnedThisMonth,
+                usedThisMonth,
+                expiring.getExpiringAmount(),
+                from,
+                now
+        );
     }
 
 }

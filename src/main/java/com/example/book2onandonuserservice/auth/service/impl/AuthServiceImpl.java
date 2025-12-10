@@ -98,8 +98,8 @@ public class AuthServiceImpl implements AuthService {
     // 로컬 인증 로직
 
     // 로컬 회원가입
-    @Override
     @Transactional
+    @Override
     public UserResponseDto signUp(LocalSignUpRequestDto request) {
         String cleanEmail = request.email().trim();
 
@@ -134,11 +134,6 @@ public class AuthServiceImpl implements AuthService {
         );
         Users savedUser = usersRepository.save(newUser);
 
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.EXCHANGE,
-                RabbitConfig.ROUTING_KEY_WELCOME,
-                savedUser.getUserId()
-        );
 
         // 회원가입 포인트 적립
         try {
@@ -147,7 +142,6 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.warn("로컬 회원가입 포인트 적립 실패: {}", e.getMessage());
         }
-
         // 인증 정보 저장
         UserAuth localAuth = UserAuth.builder()
                 .provider(LOCAL_PROVIDER)

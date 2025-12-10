@@ -8,9 +8,11 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestD
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
+import com.example.book2onandonuserservice.global.config.RabbitConfig;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final RabbitTemplate rabbitTemplate;
 
     //로컬 회원가입
     //POST /auth/signup
@@ -33,6 +36,12 @@ public class AuthController {
             @Valid @RequestBody LocalSignUpRequestDto request
     ) {
         UserResponseDto response = authService.signUp(request);
+
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_WELCOME,
+                response.userId()
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

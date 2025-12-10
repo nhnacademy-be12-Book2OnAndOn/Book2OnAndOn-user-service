@@ -41,6 +41,9 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     private final PointHistoryValidator pointHistoryValidator;
     private final PointPolicyValidator pointPolicyValidator;
 
+    // TODO 탈퇴 시 포인트 삭제(userId만 받기)
+    // TODO view 필요한 정보 -> 보유 포인트(totalPoint), 이번달 적립, 이번달 소멸, 소멸 예정 포인트, 포인트 내역(필터: 전체, 사용, 적립 -> status)
+
     // ===== 공통 유틸 =====
     // 1. 현재 보유 포인트 "숫자만" 필요할 때 사용하는 내부 헬퍼
     private int getLatestTotal(Long userId) {

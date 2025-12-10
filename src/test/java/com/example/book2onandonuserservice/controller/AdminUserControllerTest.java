@@ -58,7 +58,6 @@ class AdminUserControllerTest {
                 "nick1",
                 Role.USER,
                 "BASIC",
-                100L,
                 "ACTIVE"
         );
 
@@ -71,7 +70,6 @@ class AdminUserControllerTest {
                 "nick2",
                 Role.USER,
                 "BASIC",
-                50L,
                 "ACTIVE"
         );
 
@@ -104,7 +102,6 @@ class AdminUserControllerTest {
                 "nick1",
                 Role.USER,
                 "BASIC",
-                100L,
                 "ACTIVE"
         );
 

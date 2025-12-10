@@ -14,10 +14,9 @@ public record UserResponseDto(
         String nickname,
         Role role,
         String gradeName,
-        Long point,
         String status
 ) {
-    public static UserResponseDto fromEntity(Users user, Long point) {
+    public static UserResponseDto fromEntity(Users user) {
         return UserResponseDto.builder()
                 .userId(user.getUserId())
                 .userLoginId(user.getUserLoginId())
@@ -28,7 +27,6 @@ public record UserResponseDto(
                 .role(user.getRole())
                 .gradeName(user.getUserGrade().getGradeName().name())
                 .status(user.getStatus().name())
-                .point(point)
                 .build();
     }
 }

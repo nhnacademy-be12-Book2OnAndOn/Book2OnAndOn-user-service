@@ -64,8 +64,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserResponseDto getMyInfo(Long userId) {
         Users user = findUserOrThrow(userId);
-        Long point = fetchUserPoint(userId); // 포인트 조회
-        return UserResponseDto.fromEntity(user, point);
+        return UserResponseDto.fromEntity(user);
     }
 
     @Override
@@ -74,13 +73,10 @@ public class UserServiceImpl implements UserService {
         Users user = findUserOrThrow(userId);
 
         if (!Objects.equals(user.getEmail(), request.email())) {
-            // 1. 중복 검사
             if (usersRepository.findByEmail(request.email()).isPresent()) {
                 throw new UserEmailDuplicateException();
             }
 
-            // 2. [추가] 인증 여부 검사 (Redis 확인)
-            // 회원가입 때 쓴 키 패턴: "user:email:verified:{email}" -> "true"
             String verifiedKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey(request.email());
             String isVerified = redisUtil.getData(verifiedKey);
 
@@ -88,7 +84,6 @@ public class UserServiceImpl implements UserService {
                 throw new EmailNotVerifiedException();
             }
 
-            // 인증 확인 후 Redis 데이터 삭제 (재사용 방지)
             redisUtil.deleteData(verifiedKey);
         }
 
@@ -104,7 +99,7 @@ public class UserServiceImpl implements UserService {
                 request.phone()
         );
 
-        return UserResponseDto.fromEntity(user, fetchUserPoint(userId));
+        return UserResponseDto.fromEntity(user);
     }
 
     @Override
@@ -135,7 +130,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDto> getAllUsers(Pageable pageable) {
         return usersRepository.findAll(pageable)
-                .map(user -> UserResponseDto.fromEntity(user, 0L));
+                .map(user -> UserResponseDto.fromEntity(user));
     }
 
     @Override
@@ -143,7 +138,7 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto getUserInfo(Long userId) {
         Users user = findUserOrThrow(userId);
         Long point = fetchUserPoint(userId); // 상세 조회는 포인트 포함
-        return UserResponseDto.fromEntity(user, point);
+        return UserResponseDto.fromEntity(user);
     }
 
     @Override

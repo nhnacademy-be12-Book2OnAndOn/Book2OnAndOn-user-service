@@ -16,4 +16,22 @@ public interface OrderServiceClient {
             @RequestParam("from") LocalDate fromDate,
             @RequestParam("to") LocalDate toDate
     );
+
+    // 개별 주문 기준 순수금액 조회
+    @GetMapping("/{orderId}/pure-amount")
+    Integer getOrderPureAmount(
+            @PathVariable("orderId") Long orderId
+    );
+
+    // 개별 주문 기준 사용 포인트 조회
+    @GetMapping("/{orderId}/used-point")
+    Integer getOrderUsedPoint(
+            @PathVariable("orderId") Long orderId
+    );
+
+    // 반품 기준 환불(반품) 금액 조회
+    @GetMapping("/return/{returnId}/amount")
+    Integer getReturnAmount(
+            @PathVariable("returnId") Long returnId
+    );
 }

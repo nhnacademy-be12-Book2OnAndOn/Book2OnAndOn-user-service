@@ -33,8 +33,8 @@ public class PointPolicy {
     @Column(name = "point_policy_name", unique = true, length = 50)
     private String policyName;
 
-    @Column(name = "point_add_rate")
-    private Double policyAddRate;
+//    @Column(name = "point_add_rate")
+//    private Double policyAddRate;
 
     @Column(name = "point_add_point")
     private Integer policyAddPoint;

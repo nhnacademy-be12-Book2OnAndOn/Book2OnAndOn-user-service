@@ -15,9 +15,10 @@ public class UserReferenceLoader {
     public Users getReference(Long userId) {
         return entityManager.getReference(Users.class, userId);
     }
+
+}
 //    1) new Users(userId)
 //    → 이렇게 만들면 JPA가 “진짜 Users인지” 모름 → 비정상 엔티티
 //    2) SELECT로 Users를 가져온 뒤 setter
 //    → SELECT 쿼리가 매번 발생함 (성능 낭비)
-}
 

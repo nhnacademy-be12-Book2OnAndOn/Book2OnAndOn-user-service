@@ -62,5 +62,30 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     List<PointHistory> findByUserUserIdAndPointExpiredDateBetweenAndRemainingPointGreaterThan(
             Long userId, LocalDateTime from, LocalDateTime to, int minRemainingPoint);
 
+    // 회원탈퇴 시 포인트 0으로 강제 처리
+    List<PointHistory> findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThan(Long userId,
+                                                                                                    int minChange,
+                                                                                                    int minRemainingPoint);
+
+    // 이번 달 적립 합계
+    @Query("""
+            SELECT COALESCE(SUM(ph.pointHistoryChange), 0)
+            FROM PointHistory ph
+            WHERE ph.user.userId = :userId
+              AND ph.pointHistoryChange > 0
+              AND ph.pointCreatedDate BETWEEN :from AND :to
+            """)
+    int sumEarnedInPeriod(Long userId, LocalDateTime from, LocalDateTime to);
+
+    // 이번 달 사용 합계
+    @Query("""
+            SELECT COALESCE(SUM(-ph.pointHistoryChange), 0)
+            FROM PointHistory ph
+            WHERE ph.user.userId = :userId
+              AND ph.pointReason = com.example.book2onandonuserservice.point.domain.entity.PointReason.USE
+              AND ph.pointCreatedDate BETWEEN :from AND :to
+            """)
+    int sumUsedInPeriod(Long userId, LocalDateTime from, LocalDateTime to);
+
 }
 

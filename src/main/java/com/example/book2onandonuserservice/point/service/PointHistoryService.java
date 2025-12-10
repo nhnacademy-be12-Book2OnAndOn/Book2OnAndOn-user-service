@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPoin
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.ExpiringPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointSummaryResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -46,6 +47,12 @@ public interface PointHistoryService {
 
     // 8. 관리자 수동 포인트 지급/차감
     EarnPointResponseDto adjustPointByAdmin(PointHistoryAdminAdjustRequestDto requestDto);
+
+    // 9. 회원탈퇴 시 포인트 제거
+    void expireAllPointsForWithdraw(Long userId);
+
+    // 10. 포인트 내역 요약(프론트)
+    PointSummaryResponseDto getMyPointSummary(Long userId);
 }
 
 

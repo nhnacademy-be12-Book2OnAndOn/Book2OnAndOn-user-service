@@ -86,4 +86,12 @@ public class PointHistoryValidator {
             throw new PointAlreadyUsedForOrderException(orderId);
         }
     }
+
+    // 8. 회원탈퇴 시 포인트 0으로 강제처리
+    public List<PointHistory> getAllRemainingEarnRows(Long userId) {
+        return pointHistoryRepository
+                .findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThan(
+                        userId, 0, 0
+                );
+    }
 }

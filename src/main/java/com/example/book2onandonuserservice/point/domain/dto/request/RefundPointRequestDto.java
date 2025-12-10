@@ -16,7 +16,7 @@ public class RefundPointRequestDto {
     private Long userId;
 
     @NotNull
-    private Long orderItemId;
+    private Long orderId;
 
     @NotNull
     private Long returnId;

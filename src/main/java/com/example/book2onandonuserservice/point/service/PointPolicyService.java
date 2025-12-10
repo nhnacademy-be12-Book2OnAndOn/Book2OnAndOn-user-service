@@ -7,12 +7,16 @@ import java.util.List;
 
 public interface PointPolicyService {
 
+    // 1. 포인트 정책 전체 조회
     List<PointPolicyResponseDto> getAllPolicies();
 
+    // 2. 포인트 정책 단건 조회
     PointPolicyResponseDto getPolicyByName(String name);
 
-    PointPolicyResponseDto updatePolicyRateAndPoint(Integer policyId, PointPolicyUpdateRequestDto dto);
+    // 3. 포인트 정책 수정
+    PointPolicyResponseDto updatePolicyPoint(Integer policyId, PointPolicyUpdateRequestDto dto);
 
+    // 4. 포인트 정책 활성/비활성
     PointPolicyResponseDto updatePolicyActive(Integer policyId, PointPolicyActiveUpdateRequestDto dto);
 
 }

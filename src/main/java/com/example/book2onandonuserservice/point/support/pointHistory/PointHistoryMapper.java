@@ -21,7 +21,7 @@ public class PointHistoryMapper {
                 .pointExpiredDate(entity.getPointExpiredDate())
                 .remainingPoint(entity.getRemainingPoint())
                 .pointReason(entity.getPointReason())
-                .orderItemId(entity.getOrderItemId())
+                .orderId(entity.getOrderId())
                 .reviewId(entity.getReviewId())
                 .returnId(entity.getReturnId())
                 .build();
@@ -33,7 +33,7 @@ public class PointHistoryMapper {
             PointReason reason,
             int change,
             int newTotal,
-            Long orderItemId,
+            Long orderId,
             Long reviewId,
             Long returnId,
             LocalDateTime expiredAt
@@ -44,7 +44,7 @@ public class PointHistoryMapper {
                 .pointHistoryChange(change)
                 .totalPoints(newTotal)
                 .remainingPoint(change) // 적립된 포인트만큼 remaining 시작
-                .orderItemId(orderItemId)
+                .orderId(orderId)
                 .reviewId(reviewId)
                 .returnId(returnId)
                 .pointCreatedDate(LocalDateTime.now())
@@ -58,7 +58,7 @@ public class PointHistoryMapper {
             PointReason reason,
             int change,       // 음수
             int newTotal,
-            Long orderItemId,
+            Long orderId,
             Long reviewId,
             Long returnId
     ) {
@@ -68,7 +68,7 @@ public class PointHistoryMapper {
                 .pointHistoryChange(change)
                 .totalPoints(newTotal)
                 .remainingPoint(null)  // 차감 row는 remaining 없음
-                .orderItemId(orderItemId)
+                .orderId(orderId)
                 .reviewId(reviewId)
                 .returnId(returnId)
                 .pointCreatedDate(LocalDateTime.now())

@@ -34,10 +34,10 @@ public class PointHistoryValidator {
     }
 
     // 3. 주문 중복 적립 방지
-    public void validateOrderEarnNotDuplicated(Long orderItemId) {
-        boolean exists = pointHistoryRepository.existsByOrderItemIdAndPointReason(orderItemId, PointReason.ORDER);
+    public void validateOrderEarnNotDuplicated(Long orderId) {
+        boolean exists = pointHistoryRepository.existsByOrderIdAndPointReason(orderId, PointReason.ORDER);
         if (exists) {
-            throw new OrderAlreadyRewardedException(orderItemId);
+            throw new OrderAlreadyRewardedException(orderId);
         }
     }
 
@@ -75,15 +75,15 @@ public class PointHistoryValidator {
                 );
     }
 
-    // 7. 포인트 사용 중복 방지 (같은 주문에서 USE 두 번 금지)
-    public void validateUseNotDuplicated(Long orderItemId) {
-        if (orderItemId == null) {
+    // 7. 포인트 차감(USE) 중복 방지 (결제가 성공했을 때 딱 한 번만 실행되어야 하므로 같은 주문에서 USE 두 번 금지)
+    public void validateUseNotDuplicated(Long orderId) {
+        if (orderId == null) {
             return;
         }
         boolean exists = pointHistoryRepository
-                .existsByOrderItemIdAndPointReason(orderItemId, PointReason.USE);
+                .existsByOrderIdAndPointReason(orderId, PointReason.USE);
         if (exists) {
-            throw new PointAlreadyUsedForOrderException(orderItemId);
+            throw new PointAlreadyUsedForOrderException(orderId);
         }
     }
 }

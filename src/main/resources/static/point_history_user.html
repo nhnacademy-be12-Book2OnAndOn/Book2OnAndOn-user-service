@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 포인트 - Book2OnAndOn</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #4A7C59;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .point-summary {
+            background: linear-gradient(135deg, #4A7C59 0%, #3d6649 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .point-summary-header {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .point-amount {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .point-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .point-info-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .point-info-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .point-info-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .filter-tab:hover {
+            background-color: #f5f5f5;
+        }
+
+        .filter-tab.active {
+            background-color: #4A7C59;
+            color: white;
+            border-color: #4A7C59;
+        }
+
+        .history-table {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #4A7C59;
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .point-change {
+            font-weight: bold;
+        }
+
+        .point-plus {
+            color: #27ae60;
+        }
+
+        .point-minus {
+            color: #e74c3c;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-earn {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-use {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .page-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .page-btn.active {
+            background-color: #4A7C59;
+            color: white;
+            border-color: #4A7C59;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .point-amount {
+                font-size: 36px;
+            }
+
+            .point-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .filter-tabs {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .history-table {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>마이페이지</h1>
+</header>
+
+<div class="container">
+    <h2 class="page-title">내 포인트</h2>
+
+    <!-- 포인트 요약 -->
+    <div class="point-summary">
+        <div class="point-summary-header">보유 포인트</div>
+        <div class="point-amount" id="currentPoint">0 P</div>
+        <div class="point-info-grid">
+            <div class="point-info-item">
+                <div class="point-info-label">이번 달 적립</div>
+                <div class="point-info-value" id="monthlyEarned">0 P</div>
+            </div>
+            <div class="point-info-item">
+                <div class="point-info-label">이번 달 사용</div>
+                <div class="point-info-value" id="monthlyUsed">0 P</div>
+            </div>
+            <div class="point-info-item">
+                <div class="point-info-label">소멸 예정 포인트</div>
+                <div class="point-info-value" id="expiringPoint">0 P</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포인트 이력 -->
+    <div class="section-header">
+        <h3 class="section-title">포인트 내역</h3>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterHistory('ALL')">전체</button>
+            <button class="filter-tab" onclick="filterHistory('EARN')">적립</button>
+            <button class="filter-tab" onclick="filterHistory('USE')">사용</button>
+        </div>
+    </div>
+
+    <div class="history-table">
+        <table>
+            <thead>
+            <tr>
+                <th>일시</th>
+                <th>구분</th>
+                <th>내용</th>
+                <th>포인트</th>
+                <th>잔액</th>
+                <th>만료일</th>
+            </tr>
+            </thead>
+            <tbody id="historyTableBody">
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div>데이터를 불러오는 중...</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div id="pagination" class="pagination"></div>
+</div>
+
+<script>
+    const API_BASE = '/users/me/points';
+    const userId = localStorage.getItem('userId') || '1';
+    const USE_DUMMY = true;
+
+    let currentPage = 0;
+    let currentFilter = 'ALL';
+    let allHistory = [];
+
+    // 더미 데이터
+    const DUMMY_CURRENT_POINT = 25000;
+    const DUMMY_HISTORY = [
+        {
+            pointHistoryId: 1,
+            changeDate: '2024-12-01 14:30:00',
+            changeType: 'EARN',
+            changePoint: 5000,
+            balancePoint: 25000,
+            changeDescription: '회원가입 포인트',
+            expiryDate: '2025-12-01'
+        },
+        {
+            pointHistoryId: 2,
+            changeDate: '2024-11-30 16:20:00',
+            changeType: 'USE',
+            changePoint: 3000,
+            balancePoint: 20000,
+            changeDescription: '도서 구매 시 사용',
+            expiryDate: null
+        },
+        {
+            pointHistoryId: 3,
+            changeDate: '2024-11-28 10:15:00',
+            changeType: 'EARN',
+            changePoint: 500,
+            balancePoint: 23000,
+            changeDescription: '포토 리뷰 작성 적립',
+            expiryDate: '2025-11-28'
+        },
+        {
+            pointHistoryId: 4,
+            changeDate: '2024-11-25 11:45:00',
+            changeType: 'EARN',
+            changePoint: 1250,
+            balancePoint: 22500,
+            changeDescription: '도서 구매 적립 (1%)',
+            expiryDate: '2025-11-25'
+        },
+        {
+            pointHistoryId: 5,
+            changeDate: '2024-11-20 09:00:00',
+            changeType: 'EARN',
+            changePoint: 200,
+            balancePoint: 21250,
+            changeDescription: '일반 리뷰 작성 적립',
+            expiryDate: '2025-11-20'
+        },
+        {
+            pointHistoryId: 6,
+            changeDate: '2024-11-15 14:30:00',
+            changeType: 'USE',
+            changePoint: 5000,
+            balancePoint: 21050,
+            changeDescription: '도서 구매 시 사용',
+            expiryDate: null
+        },
+        {
+            pointHistoryId: 7,
+            changeDate: '2024-11-10 10:20:00',
+            changeType: 'EARN',
+            changePoint: 800,
+            balancePoint: 26050,
+            changeDescription: '도서 구매 적립 (1%)',
+            expiryDate: '2025-11-10'
+        },
+        {
+            pointHistoryId: 8,
+            changeDate: '2024-11-05 16:45:00',
+            changeType: 'EARN',
+            changePoint: 500,
+            balancePoint: 25250,
+            changeDescription: '포토 리뷰 작성 적립',
+            expiryDate: '2025-11-05'
+        },
+        {
+            pointHistoryId: 9,
+            changeDate: '2024-10-28 11:00:00',
+            changeType: 'USE',
+            changePoint: 2000,
+            balancePoint: 24750,
+            changeDescription: '도서 구매 시 사용',
+            expiryDate: null
+        },
+        {
+            pointHistoryId: 10,
+            changeDate: '2024-10-20 13:30:00',
+            changeType: 'EARN',
+            changePoint: 1350,
+            balancePoint: 26750,
+            changeDescription: '도서 구매 적립 (1%)',
+            expiryDate: '2025-10-20'
+        }
+    ];
+
+    // 현재 포인트 조회
+    async function loadCurrentPoint() {
+        if (USE_DUMMY) {
+            document.getElementById('currentPoint').textContent =
+                DUMMY_CURRENT_POINT.toLocaleString() + ' P';
+
+            // 이번 달 통계 계산
+            const now = new Date();
+            const thisMonth = now.getMonth();
+            const thisYear = now.getFullYear();
+
+            let monthlyEarned = 0;
+            let monthlyUsed = 0;
+
+            DUMMY_HISTORY.forEach(item => {
+                const itemDate = new Date(item.changeDate);
+                if (itemDate.getMonth() === thisMonth && itemDate.getFullYear() === thisYear) {
+                    if (item.changeType === 'EARN') {
+                        monthlyEarned += item.changePoint;
+                    } else {
+                        monthlyUsed += item.changePoint;
+                    }
+                }
+            });
+
+            document.getElementById('monthlyEarned').textContent =
+                monthlyEarned.toLocaleString() + ' P';
+            document.getElementById('monthlyUsed').textContent =
+                monthlyUsed.toLocaleString() + ' P';
+            document.getElementById('expiringPoint').textContent = '1,200 P';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/current`, {
+                headers: {
+                    'X-USER-ID': userId
+                }
+            });
+
+            if (!response.ok) throw new Error('포인트 조회 실패');
+
+            const data = await response.json();
+            document.getElementById('currentPoint').textContent =
+                data.currentPoint.toLocaleString() + ' P';
+        } catch (error) {
+            console.error('Error:', error);
+            alert('포인트 조회에 실패했습니다.');
+        }
+    }
+
+    // 포인트 이력 조회
+    async function loadHistory(page = 0) {
+        if (USE_DUMMY) {
+            allHistory = [...DUMMY_HISTORY];
+            applyFilter();
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}?page=${page}&size=10`, {
+                headers: {
+                    'X-USER-ID': userId
+                }
+            });
+
+            if (!response.ok) throw new Error('이력 조회 실패');
+
+            const data = await response.json();
+            allHistory = data.content;
+            applyFilter();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('이력 조회에 실패했습니다.');
+        }
+    }
+
+    // 필터 적용
+    function applyFilter() {
+        let filteredHistory = allHistory;
+
+        if (currentFilter !== 'ALL') {
+            filteredHistory = allHistory.filter(item => item.changeType === currentFilter);
+        }
+
+        renderHistory(filteredHistory);
+        renderPagination(Math.ceil(filteredHistory.length / 10));
+    }
+
+    // 이력 렌더링
+    function renderHistory(history) {
+        const tbody = document.getElementById('historyTableBody');
+
+        if (!history || history.length === 0) {
+            tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div>포인트 내역이 없습니다</div>
+                        </td>
+                    </tr>
+                `;
+            return;
+        }
+
+        // 페이지네이션 적용
+        const start = currentPage * 10;
+        const end = start + 10;
+        const pageHistory = history.slice(start, end);
+
+        tbody.innerHTML = pageHistory.map(item => `
+                <tr>
+                    <td>${item.changeDate}</td>
+                    <td>
+                        <span class="status-badge ${item.changeType === 'EARN' ? 'badge-earn' : 'badge-use'}">
+                            ${item.changeType === 'EARN' ? '적립' : '사용'}
+                        </span>
+                    </td>
+                    <td>${item.changeDescription}</td>
+                    <td class="point-change ${item.changeType === 'EARN' ? 'point-plus' : 'point-minus'}">
+                        ${item.changeType === 'EARN' ? '+' : '-'}${item.changePoint.toLocaleString()} P
+                    </td>
+                    <td><strong>${item.balancePoint.toLocaleString()} P</strong></td>
+                    <td>${item.expiryDate || '-'}</td>
+                </tr>
+            `).join('');
+    }
+
+    // 페이지네이션 렌더링
+    function renderPagination(totalPages) {
+        const pagination = document.getElementById('pagination');
+
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // 이전 버튼
+        if (currentPage > 0) {
+            html += `<button class="page-btn" onclick="changePage(${currentPage - 1})">이전</button>`;
+        }
+
+        // 페이지 번호
+        for (let i = 0; i < totalPages; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i + 1}</button>`;
+        }
+
+        // 다음 버튼
+        if (currentPage < totalPages - 1) {
+            html += `<button class="page-btn" onclick="changePage(${currentPage + 1})">다음</button>`;
+        }
+
+        pagination.innerHTML = html;
+    }
+
+    // 페이지 변경
+    function changePage(page) {
+        currentPage = page;
+        applyFilter();
+    }
+
+    // 필터 변경
+    function filterHistory(filter) {
+        currentFilter = filter;
+        currentPage = 0;
+
+        // 탭 활성화 상태 변경
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        applyFilter();
+    }
+
+    // 페이지 로드 시 실행
+    loadCurrentPoint();
+    loadHistory();
+</script>
+</body>
+</html>

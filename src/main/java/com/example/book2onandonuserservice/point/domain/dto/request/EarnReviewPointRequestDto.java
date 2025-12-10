@@ -1,6 +1,5 @@
 package com.example.book2onandonuserservice.point.domain.dto.request;
 
-import com.example.book2onandonuserservice.point.domain.entity.PointReviewType;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,10 +18,13 @@ public class EarnReviewPointRequestDto {
     @NotNull
     private Long reviewId;
 
-    @NotNull
-    private Long orderItemId;
+//    @NotNull
+//    private Long orderId;
+//
+//    @NotNull
+//    private PointReviewType reviewType; // TEXT / PHOTO
 
     @NotNull
-    private PointReviewType reviewType;
+    private boolean hasImage; // T: review_photo, F: review_text
 
 }

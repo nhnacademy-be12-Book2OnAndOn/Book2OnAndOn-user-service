@@ -23,7 +23,7 @@ public class PointHistoryResponseDto {
 
     private PointReason pointReason;
 
-    private Long orderItemId;
+    private Long orderId;
 
     private Long reviewId;
 

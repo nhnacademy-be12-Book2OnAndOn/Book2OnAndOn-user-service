@@ -23,13 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class PointPolicyController {
 
     private final PointPolicyService pointPolicyService;
-    private static final String USER_ID_HEADER = "X-USER-ID";
+    private static final String USER_ID_HEADER = "X-User-Id";
 
     // 1. (관리자) 정책 전체 조회
     // GET /admin/point-policies
     @GetMapping
     public ResponseEntity<List<PointPolicyResponseDto>> getAllPolicies(
-            @RequestHeader(USER_ID_HEADER) Long userId // 당장은 안 쓰지만, “어떤 관리자가 이 작업을 했는지” 추후 로깅/감사에 쓰기 위해 작성
+            @RequestHeader(USER_ID_HEADER) Long userId // 당장은 안 쓰지만, “어떤 관리자가 이 작업을 했는지” 추후 로깅/감사에 쓰기 위해 작성...?
     ) {
         List<PointPolicyResponseDto> pointPolicy = pointPolicyService.getAllPolicies();
         return ResponseEntity.ok(pointPolicy);
@@ -46,7 +46,7 @@ public class PointPolicyController {
         return ResponseEntity.ok(pointPolicy);
     }
 
-    // 3. (관리자) 정책 비율/포인트 수정
+    // 3. (관리자) 정책 비율/고정포인트 수정
     // PUT /admin/point-policies/1
     @PutMapping("/{policyId}")
     public ResponseEntity<PointPolicyResponseDto> updatePolicy(
@@ -54,7 +54,7 @@ public class PointPolicyController {
             @Valid @RequestBody PointPolicyUpdateRequestDto dto,
             @RequestHeader(USER_ID_HEADER) Long userId
     ) {
-        PointPolicyResponseDto pointPolicy = pointPolicyService.updatePolicyRateAndPoint(policyId, dto);
+        PointPolicyResponseDto pointPolicy = pointPolicyService.updatePolicyPoint(policyId, dto);
         return ResponseEntity.ok(pointPolicy);
     }
 

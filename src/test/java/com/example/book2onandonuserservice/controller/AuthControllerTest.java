@@ -123,7 +123,7 @@ class AuthControllerTest {
         FindIdRequestDto request = new FindIdRequestDto("홍길동", "test@test.com");
         FindIdResponseDto response = new FindIdResponseDto("testUs**");
 
-        given(authService.findId(any(FindIdRequestDto.class))).willReturn(response);
+        given(authService.findMemberIdByNameAndEmail(any(FindIdRequestDto.class))).willReturn(response);
 
         mockMvc.perform(post("/auth/find-id")
                         .with(csrf())

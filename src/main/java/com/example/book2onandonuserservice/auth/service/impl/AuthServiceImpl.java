@@ -147,7 +147,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         userAuthRepository.save(localAuth);
 
-        return UserResponseDto.fromEntity(savedUser, 0L);
+        return UserResponseDto.fromEntity(savedUser);
     }
 
     // 로컬 로그인

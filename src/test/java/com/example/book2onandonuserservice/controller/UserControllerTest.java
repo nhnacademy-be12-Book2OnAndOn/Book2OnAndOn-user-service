@@ -75,7 +75,6 @@ class UserControllerTest {
                 "nick",
                 Role.USER,
                 "BASIC",
-                10L,
                 "ACTIVE"
         );
 
@@ -106,7 +105,6 @@ class UserControllerTest {
                 "newNick",
                 Role.USER,
                 "BASIC",
-                10L,
                 "ACTIVE"
         );
 

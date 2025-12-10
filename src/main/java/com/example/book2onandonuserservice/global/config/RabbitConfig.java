@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitConfig {
 
     public static final String EXCHANGE = "book2.dev.user.exchange";
-    public static final String ROUTING_KEY = "coupon.welcome";
+    public static final String ROUTING_KEY_WELCOME = "coupon.welcome";
     public static final String ROUTING_KEY_BIRTHDAY = "coupon.birthday"; //이거 추가
 
     @Bean

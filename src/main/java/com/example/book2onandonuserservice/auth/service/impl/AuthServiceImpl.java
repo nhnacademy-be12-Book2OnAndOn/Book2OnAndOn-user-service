@@ -14,7 +14,6 @@ import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.auth.service.AuthTokenService;
 import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
-import com.example.book2onandonuserservice.global.config.RabbitConfig;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
@@ -35,7 +34,6 @@ import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -58,7 +56,6 @@ public class AuthServiceImpl implements AuthService {
     private final PointHistoryService pointHistoryService;
     private final RedisUtil redisUtil;
     private final ApplicationEventPublisher eventPublisher;
-    private final RabbitTemplate rabbitTemplate;
 
     private static final String LOCAL_PROVIDER = "local";
     private static final SecureRandom secureRandom = new SecureRandom();
@@ -133,7 +130,6 @@ public class AuthServiceImpl implements AuthService {
                 defaultGrade
         );
         Users savedUser = usersRepository.save(newUser);
-
 
         // 회원가입 포인트 적립
         try {

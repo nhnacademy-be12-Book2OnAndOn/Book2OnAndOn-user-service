@@ -114,7 +114,7 @@ public class PaycoAuthService {
         UserGrade defaultGrade = userGradeRepository.findByGradeName(GradeName.BASIC)
                 .orElseThrow(() -> new IllegalStateException("기본 회원 등급(BASIC)이 존재하지 않습니다."));
 
-        Users newUser = new Users(name, email, phone, birth, defaultGrade);
+        Users newUser = new Users(name, name, email, phone, birth, defaultGrade);
         Users savedUser = usersRepository.save(newUser);
 
         // 회원가입 포인트 적립

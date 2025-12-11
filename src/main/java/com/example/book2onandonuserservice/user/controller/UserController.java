@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -84,5 +85,18 @@ public class UserController {
             @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(userService.getMyLikedBooks(userId, pageable));
+    }
+
+    //닉네임 중복 확인
+    @GetMapping("/users/check-nickname")
+    public ResponseEntity<Boolean> checkNickname(@RequestParam String nickname) {
+        return ResponseEntity.ok(userService.checkNickname(nickname));
+    }
+
+
+    //아이디 중복 확인
+    @GetMapping("/users/check-id")
+    public ResponseEntity<Boolean> checkLoginId(@RequestParam String userLoginId) {
+        return ResponseEntity.ok(userService.checkLoginId(userLoginId));
     }
 }

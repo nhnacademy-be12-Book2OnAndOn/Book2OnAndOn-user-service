@@ -79,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void unlockDormantAccount(String email, String code) {
         verificationService.unlockDormantAccount(email, code);
     }
@@ -124,16 +125,23 @@ public class AuthServiceImpl implements AuthService {
         String encodedPassword = passwordEncoder.encode(request.password());
 
         // 유저 저장
-        Users newUser = new Users(
+        Users newUser = new Users();
+
+        newUser.initLocalAccount(
                 request.userLoginId(),
                 encodedPassword,
                 request.name(),
-                request.nickname(),
+                request.nickname()
+        );
+
+        newUser.setContactInfo(
                 request.email(),
                 request.phone(),
-                request.birth(),
-                defaultGrade
+                request.birth()
         );
+
+        newUser.changeGrade(defaultGrade);
+
         Users savedUser = usersRepository.save(newUser);
 
         // 회원가입 포인트 적립

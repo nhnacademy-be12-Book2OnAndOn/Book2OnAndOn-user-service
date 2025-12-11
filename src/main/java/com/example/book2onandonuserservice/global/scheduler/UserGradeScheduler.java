@@ -50,8 +50,10 @@ public class UserGradeScheduler {
         int updatedCount = 0;
         int page = 0;
 
-        while (true) {
-            Page<Users> activeUsersPage = usersRepository.findByStatus(
+        Page<Users> activeUsersPage;
+
+        do {
+            activeUsersPage = usersRepository.findByStatus(
                     Status.ACTIVE,
                     PageRequest.of(page, PAGE_SIZE)
             );
@@ -66,15 +68,12 @@ public class UserGradeScheduler {
                 updatedCount += processUserGradeUpdate(user, gradePolicies, fromDate, toDate);
             }
 
-            // 배치 단위로 flush + clear 해서 메모리/쿼리 최적화
             entityManager.flush();
             entityManager.clear();
 
-            if (!activeUsersPage.hasNext()) {
-                break;
-            }
             page++;
-        }
+
+        } while (activeUsersPage.hasNext());
 
         long endTime = System.currentTimeMillis();
         log.info("등급 산정 종료 (업데이트: {}명, 소요시간: {}ms)", updatedCount, (endTime - startTime));
@@ -142,7 +141,7 @@ public class UserGradeScheduler {
     ) {
         if (user.getUserGrade() != null
                 && user.getUserGrade().getGradeName() == newGrade.getGradeName()) {
-            return 0; // 변경 없음
+            return 0;
         }
 
         String prev = (user.getUserGrade() == null)

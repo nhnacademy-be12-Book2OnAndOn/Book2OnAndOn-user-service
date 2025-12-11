@@ -105,10 +105,18 @@ public class GlobalExceptionHandler {
     }
 
     //403 Forbidden
-    @ExceptionHandler({
-            UserDormantException.class,
-            UserWithdrawnException.class
-    })
+    @ExceptionHandler(UserDormantException.class)
+    public ResponseEntity<ErrorResponse> handleUserDormantException(UserDormantException ex) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "ACCOUNT_DORMANT",
+                ex.getMessage()
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(UserWithdrawnException.class)
     public ResponseEntity<ErrorResponse> handleAccountStatusException(RuntimeException ex) {
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),

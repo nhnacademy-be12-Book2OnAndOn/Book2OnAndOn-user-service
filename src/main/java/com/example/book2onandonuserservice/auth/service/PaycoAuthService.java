@@ -114,7 +114,10 @@ public class PaycoAuthService {
         UserGrade defaultGrade = userGradeRepository.findByGradeName(GradeName.BASIC)
                 .orElseThrow(() -> new IllegalStateException("기본 회원 등급(BASIC)이 존재하지 않습니다."));
 
-        Users newUser = new Users(name, name, email, phone, birth, defaultGrade);
+        Users newUser = new Users();
+        newUser.initSocialAccount(name, name);
+        newUser.setContactInfo(email, phone, birth);
+        newUser.changeGrade(defaultGrade);
         Users savedUser = usersRepository.save(newUser);
 
         // 회원가입 포인트 적립
@@ -149,7 +152,7 @@ public class PaycoAuthService {
         if (paycoMobile == null) {
             return null;
         }
-        String cleanNumber = paycoMobile.replaceAll("[^0-9]", "");
+        String cleanNumber = paycoMobile.replaceAll("\\D", "");
         if (cleanNumber.startsWith("82")) {
             return "0" + cleanNumber.substring(2);
         }

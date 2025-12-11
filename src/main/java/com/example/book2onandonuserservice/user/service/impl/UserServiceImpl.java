@@ -130,14 +130,13 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDto> getAllUsers(Pageable pageable) {
         return usersRepository.findAll(pageable)
-                .map(user -> UserResponseDto.fromEntity(user));
+                .map(UserResponseDto::fromEntity);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponseDto getUserInfo(Long userId) {
         Users user = findUserOrThrow(userId);
-        Long point = fetchUserPoint(userId); // 상세 조회는 포인트 포함
         return UserResponseDto.fromEntity(user);
     }
 
@@ -196,5 +195,9 @@ public class UserServiceImpl implements UserService {
         return usersRepository.existsByUserLoginId(userLoginId);
     }
 
+    @Override
+    public long countUsers() {
+        return usersRepository.count();
+    }
 
 }

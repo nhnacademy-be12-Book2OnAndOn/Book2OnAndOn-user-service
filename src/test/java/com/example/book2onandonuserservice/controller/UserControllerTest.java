@@ -6,9 +6,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
+import com.example.book2onandonuserservice.auth.service.AuthService;
+import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
+import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.user.controller.UserController;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserUpdateRequestDto;
@@ -47,16 +53,16 @@ class UserControllerTest {
     UserService userService;
 
     @MockBean
-    com.example.book2onandonuserservice.global.util.EncryptionUtils encryptionUtils;
+    EncryptionUtils encryptionUtils;
 
     @MockBean
-    com.example.book2onandonuserservice.global.converter.EncryptStringConverter encryptStringConverter;
+    EncryptStringConverter encryptStringConverter;
 
     @MockBean
-    com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider jwtTokenProvider;
+    JwtTokenProvider jwtTokenProvider;
 
     @MockBean
-    com.example.book2onandonuserservice.auth.service.AuthService authService;
+    AuthService authService;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -172,5 +178,57 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.content.length()").value(1));
 
         Mockito.verify(userService).getUserReviews(eq(1L), any());
+    }
+
+    // [추가] 좋아요 목록 조회
+    @Test
+    @DisplayName("GET /users/me/likes - 좋아요 목록 조회 성공")
+    @WithMockUser(username = "user", roles = {"USER"})
+    void getMyLikedBooks_success() throws Exception {
+        MyLikedBookResponseDto likedBook = new MyLikedBookResponseDto(); // 기본 생성자 사용
+        Page<MyLikedBookResponseDto> page =
+                new PageImpl<>(List.of(likedBook), PageRequest.of(0, 10), 1);
+
+        Mockito.when(userService.getMyLikedBooks(eq(1L), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/users/me/likes")
+                        .header("X-User-Id", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+
+        Mockito.verify(userService).getMyLikedBooks(eq(1L), any());
+    }
+
+    // [추가] 닉네임 중복 확인
+    @Test
+    @DisplayName("GET /users/check-nickname - 닉네임 중복 확인 성공")
+    @WithMockUser(username = "user", roles = {"USER"})
+    void checkNickname_success() throws Exception {
+        String nickname = "testNick";
+        Mockito.when(userService.checkNickname(nickname)).thenReturn(true);
+
+        mockMvc.perform(get("/users/check-nickname")
+                        .param("nickname", nickname))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        Mockito.verify(userService).checkNickname(nickname);
+    }
+
+    // [추가] 아이디 중복 확인
+    @Test
+    @DisplayName("GET /users/check-id - 아이디 중복 확인 성공")
+    @WithMockUser(username = "user", roles = {"USER"})
+    void checkLoginId_success() throws Exception {
+        String userLoginId = "testId";
+        Mockito.when(userService.checkLoginId(userLoginId)).thenReturn(false);
+
+        mockMvc.perform(get("/users/check-id")
+                        .param("userLoginId", userLoginId))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+
+        Mockito.verify(userService).checkLoginId(userLoginId);
     }
 }

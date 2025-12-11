@@ -82,35 +82,31 @@ public class Users {
     private String withdrawReason;
 
     //생성자
-    private void initCommonFields(UserGrade userGrade, String name, String nickname, String email, String phone,
-                                  LocalDate birth) {
+    private void initDefaults(String name, String nickname) {
+        this.name = name;
         this.nickname = nickname;
         this.createdAt = LocalDateTime.now();
         this.lastLoginAt = LocalDateTime.now();
         this.role = Role.USER;
         this.status = Status.ACTIVE;
-        this.userGrade = userGrade;
-        this.name = name;
+    }
+
+    public void initLocalAccount(String userLoginId, String password, String name, String nickname) {
+        this.userLoginId = userLoginId;
+        this.password = password;
+        initDefaults(name, nickname);
+    }
+
+    public void initSocialAccount(String name, String nickname) {
+        initDefaults(name, nickname);
+    }
+
+    public void setContactInfo(String email, String phone, LocalDate birth) {
         this.email = email;
         this.phone = phone;
         this.birth = birth;
     }
 
-    public Users(String userLoginId, String password, String name, String nickname, String email, String phone,
-                 LocalDate birth,
-                 UserGrade userGrade) {
-        this.userLoginId = userLoginId;
-        this.password = password;
-        initCommonFields(userGrade, name, nickname, email, phone, birth);
-    }
-
-    public Users(String name, String nickname, String email, String phone, LocalDate birth, UserGrade userGrade) {
-        this.userLoginId = null;
-        this.password = null;
-        initCommonFields(userGrade, name, nickname, email, phone, birth);
-    }
-
-    //비즈니스 로직 더티체킹
     //프로필 정보 수정
     public void updateProfile(String name, String email, String nickname, String phone) {
         this.name = name;
@@ -134,9 +130,8 @@ public class Users {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
-        this.email = "withdrawn_" + this.userId + "@deleted.com"; //Unique 제약조건을 피하기 위함
+        this.email = "withdrawn_" + this.userId + "@deleted.com";
         this.phone = null;
-        this.email = null;
         this.withdrawReason = reason;
     }
 
@@ -152,6 +147,4 @@ public class Users {
     public void changeStatus(Status newStatus) {
         this.status = newStatus;
     }
-
-
 }

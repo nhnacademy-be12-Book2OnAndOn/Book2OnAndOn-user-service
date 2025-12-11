@@ -38,13 +38,11 @@ public class PointHistoryMapper {
             Long returnId,
             LocalDateTime expiredAt
     ) {
-        int newTotal = currentPoint + change;
-
         return PointHistory.builder()
                 .user(user)
                 .pointReason(reason)
                 .pointHistoryChange(change)
-                .totalPoints(newTotal)
+                .totalPoints(currentPoint)
                 .remainingPoint(change) // 적립된 포인트만큼 remaining 시작
                 .orderId(orderId)
                 .reviewId(reviewId)
@@ -64,13 +62,11 @@ public class PointHistoryMapper {
             Long reviewId,
             Long returnId
     ) {
-        int newTotal = currentPoint + change;
-
         return PointHistory.builder()
                 .user(user)
                 .pointReason(reason)
                 .pointHistoryChange(change)
-                .totalPoints(newTotal)
+                .totalPoints(currentPoint)
                 .remainingPoint(null)  // 차감 row는 remaining 없음
                 .orderId(orderId)
                 .reviewId(reviewId)

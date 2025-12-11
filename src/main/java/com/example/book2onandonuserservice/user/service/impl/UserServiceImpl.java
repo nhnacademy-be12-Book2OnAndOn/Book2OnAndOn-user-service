@@ -186,5 +186,15 @@ public class UserServiceImpl implements UserService {
         return bookServiceClient.getMyLikedBooks(userId, pageable);
     }
 
+    @Override
+    public boolean checkNickname(String nickname) {
+        return usersRepository.existsByNickname(nickname);
+    }
+
+    @Override
+    public boolean checkLoginId(String userLoginId) {
+        return usersRepository.existsByUserLoginId(userLoginId);
+    }
+
 
 }

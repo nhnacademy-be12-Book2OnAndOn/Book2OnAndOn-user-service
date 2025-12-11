@@ -82,8 +82,9 @@ public class Users {
     private String withdrawReason;
 
     //생성자
-    private void initCommonFields(UserGrade userGrade, String name, String email, String phone, LocalDate birth) {
-        this.nickname = name;
+    private void initCommonFields(UserGrade userGrade, String name, String nickname, String email, String phone,
+                                  LocalDate birth) {
+        this.nickname = nickname;
         this.createdAt = LocalDateTime.now();
         this.lastLoginAt = LocalDateTime.now();
         this.role = Role.USER;
@@ -95,17 +96,18 @@ public class Users {
         this.birth = birth;
     }
 
-    public Users(String userLoginId, String password, String name, String email, String phone, LocalDate birth,
+    public Users(String userLoginId, String password, String name, String nickname, String email, String phone,
+                 LocalDate birth,
                  UserGrade userGrade) {
         this.userLoginId = userLoginId;
         this.password = password;
-        initCommonFields(userGrade, name, email, phone, birth);
+        initCommonFields(userGrade, name, nickname, email, phone, birth);
     }
 
-    public Users(String name, String email, String phone, LocalDate birth, UserGrade userGrade) {
+    public Users(String name, String nickname, String email, String phone, LocalDate birth, UserGrade userGrade) {
         this.userLoginId = null;
         this.password = null;
-        initCommonFields(userGrade, name, email, phone, birth);
+        initCommonFields(userGrade, name, nickname, email, phone, birth);
     }
 
     //비즈니스 로직 더티체킹

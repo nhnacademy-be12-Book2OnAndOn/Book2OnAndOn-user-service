@@ -27,6 +27,7 @@ import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedExcept
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
+import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
 import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
@@ -103,6 +104,9 @@ public class AuthServiceImpl implements AuthService {
         if (usersRepository.existsByUserLoginId(request.userLoginId())) {
             throw new UserLoginIdDuplicateException();
         }
+        if (usersRepository.existsByNickname(request.nickname())) {
+            throw new UserNicknameDuplicationException(); // "이미 사용중인 닉네임 입니다." 메시지 포함됨
+        }
         if (usersRepository.findByEmail(cleanEmail).isPresent()) {
             throw new UserEmailDuplicateException();
         }
@@ -124,6 +128,7 @@ public class AuthServiceImpl implements AuthService {
                 request.userLoginId(),
                 encodedPassword,
                 request.name(),
+                request.nickname(),
                 request.email(),
                 request.phone(),
                 request.birth(),

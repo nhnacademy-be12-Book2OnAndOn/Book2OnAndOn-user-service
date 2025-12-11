@@ -45,4 +45,7 @@ public interface UserService {
 
     // 아이디 중복 확인
     boolean checkLoginId(String userLoginId);
+
+    //총 회원 수 조회
+    long countUsers();
 }

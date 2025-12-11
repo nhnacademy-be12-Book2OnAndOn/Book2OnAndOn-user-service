@@ -24,6 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminUserController {
     private final UserService userService;
 
+    // 대시보드 회원 수 조회
+    @GetMapping("/count")
+    public ResponseEntity<Long> countUsers() {
+        Long count = userService.countUsers();
+        return ResponseEntity.ok(count);
+    }
+
+
     //전체 회원 목록 조회
     @GetMapping
     public ResponseEntity<Page<UserResponseDto>> getAllUsers(

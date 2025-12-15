@@ -2,7 +2,7 @@ name: CI/CD for User Service
 
 on:
   push:
-    branches: [ "dev", "master" ]
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 permissions:

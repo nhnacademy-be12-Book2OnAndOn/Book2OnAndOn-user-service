@@ -27,8 +27,8 @@ public class PointExpireScheduler {
         List<Long> userIds = pointHistoryRepository.findUserIdsWithExpiredPoints(now);
 
         int count = 0;
+        log.info("포인트 만료처리 스케줄러 시작: {}", LocalDateTime.now());
         for (Long userId : userIds) {
-            log.info("포인트 만료처리 스케줄러 시작: {}", LocalDateTime.now());
             pointHistoryService.expirePoints(userId);
             count++;
         }

@@ -68,10 +68,9 @@ public class PointHistoryValidator {
     // 6. 만료 대상 row 조회
     public List<PointHistory> getExpiredEarnRows(Long userId) {
         return pointHistoryRepository
-                .findByUserUserIdAndPointExpiredDateBeforeAndRemainingPointGreaterThan(
+                .findAlreadyExpiredPoints(
                         userId,
-                        LocalDateTime.now(),
-                        0
+                        LocalDateTime.now()
                 );
     }
 
@@ -90,8 +89,6 @@ public class PointHistoryValidator {
     // 8. 회원탈퇴 시 포인트 0으로 강제처리
     public List<PointHistory> getAllRemainingEarnRows(Long userId) {
         return pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThan(
-                        userId, 0, 0
-                );
+                .findAllRemianingPoints(userId);
     }
 }

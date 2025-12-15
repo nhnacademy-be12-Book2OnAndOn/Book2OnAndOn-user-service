@@ -134,9 +134,9 @@ class PointHistoryValidatorTest {
     // 6. 만료 row 조회
     @Test
     void getExpiredEarnRows_success() {
-        when(repository.findByUserUserIdAndPointExpiredDateBeforeAndRemainingPointGreaterThan(
-                eq(1L), any(LocalDateTime.class), eq(0)
-        )).thenReturn(List.of(new PointHistory()));
+        when(repository.findAlreadyExpiredPoints(
+                eq(1L), any(LocalDateTime.class)))
+                .thenReturn(List.of(new PointHistory()));
 
         List<PointHistory> rows = validator.getExpiredEarnRows(1L);
 
@@ -168,7 +168,7 @@ class PointHistoryValidatorTest {
 
     @Test
     void getAllRemainingEarnRows_success() {
-        when(repository.findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThan(1L, 0, 0))
+        when(repository.findAllRemianingPoints(1L))
                 .thenReturn(List.of(new PointHistory(), new PointHistory()));
 
         List<PointHistory> rows = validator.getAllRemainingEarnRows(1L);

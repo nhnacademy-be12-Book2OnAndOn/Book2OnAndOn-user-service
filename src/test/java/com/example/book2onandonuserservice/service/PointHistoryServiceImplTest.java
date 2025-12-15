@@ -109,8 +109,8 @@ class PointHistoryServiceImplTest {
     void getMyPointHistoryByType_EARN() {
         Page<PointHistory> page = new PageImpl<>(List.of(new PointHistory()));
         when(pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeGreaterThanOrderByPointCreatedDateDesc(
-                        eq(1L), eq(0), any()))
+                .findEarnedPoints(
+                        eq(1L), any()))
                 .thenReturn(page);
 
         when(pointHistoryMapper.toDto(any())).thenReturn(mock(PointHistoryResponseDto.class));
@@ -124,8 +124,7 @@ class PointHistoryServiceImplTest {
     void getMyPointHistoryByType_USE() {
         Page<PointHistory> page = new PageImpl<>(List.of(new PointHistory()));
         when(pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeLessThanOrderByPointCreatedDateDesc(
-                        eq(1L), eq(0), any()))
+                .findUsedPoints(eq(1L), any()))
                 .thenReturn(page);
         when(pointHistoryMapper.toDto(any())).thenReturn(mock(PointHistoryResponseDto.class));
 
@@ -386,9 +385,7 @@ class PointHistoryServiceImplTest {
         r2.setPointHistoryChange(50);
 
         when(pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThanOrderByPointExpiredDateAsc(
-                        1L, 0, 0
-                )).thenReturn(List.of(r1, r2));
+                .findPointsForUsage(1L)).thenReturn(List.of(r1, r2));
 
         when(userReferenceLoader.getReference(1L)).thenReturn(user);
 
@@ -446,8 +443,7 @@ class PointHistoryServiceImplTest {
         use.setRemainingPoint(50);
 
         when(pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThanOrderByPointExpiredDateAsc(
-                        any(), anyInt(), anyInt()))
+                .findPointsForUsage(any()))
                 .thenReturn(List.of(skip, use));
 
         when(userReferenceLoader.getReference(1L)).thenReturn(user);
@@ -472,8 +468,7 @@ class PointHistoryServiceImplTest {
                 .thenReturn(Optional.of(latest));
 
         when(pointHistoryRepository
-                .findByUserUserIdAndPointHistoryChangeGreaterThanAndRemainingPointGreaterThanOrderByPointExpiredDateAsc(
-                        any(), anyInt(), anyInt()))
+                .findPointsForUsage(any()))
                 .thenReturn(List.of());
 
         assertThrows(PointBalanceIntegrityException.class, () -> pointHistoryService.usePoint(dto));
@@ -631,9 +626,8 @@ class PointHistoryServiceImplTest {
     @Test
     void refundPoint_noUsedPoint_throws() {
         RefundPointRequestDto dto =
-                new RefundPointRequestDto(1L, 10L, 20L, 0, 10);
+                new RefundPointRequestDto(1L, 10L, 20L, 1, 0);
 
-        when(userReferenceLoader.getReference(1L)).thenReturn(user);
         when(pointHistoryRepository.sumUsedPointByOrder(10L, PointReason.USE))
                 .thenReturn(0);
 
@@ -751,8 +745,8 @@ class PointHistoryServiceImplTest {
     @Test
     void getExpiringPoints_empty() {
         when(pointHistoryRepository
-                .findByUserUserIdAndPointExpiredDateBetweenAndRemainingPointGreaterThan(
-                        any(), any(), any(), anyInt()))
+                .findSoonExpiringPoints(
+                        any(), any(), any()))
                 .thenReturn(List.of());
 
         ExpiringPointResponseDto res = pointHistoryService.getExpiringPoints(1L, 7);
@@ -833,7 +827,6 @@ class PointHistoryServiceImplTest {
 
         when(pointHistoryRepository.findTop1ByUserUserIdOrderByPointCreatedDateDesc(1L))
                 .thenReturn(Optional.of(latest));
-        when(userReferenceLoader.getReference(1L)).thenReturn(user);
 
         assertThrows(AdminAdjustPointNegativeBalanceException.class,
                 () -> pointHistoryService.adjustPointByAdmin(dto));
@@ -846,8 +839,8 @@ class PointHistoryServiceImplTest {
         when(pointHistoryRepository.sumEarnedInPeriod(any(), any(), any())).thenReturn(10);
         when(pointHistoryRepository.sumUsedInPeriod(any(), any(), any())).thenReturn(5);
         when(pointHistoryRepository
-                .findByUserUserIdAndPointExpiredDateBetweenAndRemainingPointGreaterThan(
-                        any(), any(), any(), anyInt()))
+                .findSoonExpiringPoints(
+                        any(), any(), any()))
                 .thenReturn(List.of());
 
         var summary = pointHistoryService.getMyPointSummary(1L);

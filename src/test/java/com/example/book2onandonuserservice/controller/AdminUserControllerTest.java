@@ -58,7 +58,8 @@ class AdminUserControllerTest {
                 "nick1",
                 Role.USER,
                 "BASIC",
-                "ACTIVE"
+                "ACTIVE",
+                "local"
         );
 
         UserResponseDto user2 = new UserResponseDto(
@@ -70,7 +71,8 @@ class AdminUserControllerTest {
                 "nick2",
                 Role.USER,
                 "BASIC",
-                "ACTIVE"
+                "ACTIVE",
+                "local"
         );
 
         Page<UserResponseDto> page =
@@ -102,7 +104,8 @@ class AdminUserControllerTest {
                 "nick1",
                 Role.USER,
                 "BASIC",
-                "ACTIVE"
+                "ACTIVE",
+                "local"
         );
 
         when(userService.getMyInfo(userId)).thenReturn(dto);

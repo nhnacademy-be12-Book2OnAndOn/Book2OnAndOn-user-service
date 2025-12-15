@@ -12,13 +12,20 @@ import com.example.book2onandonuserservice.point.domain.dto.response.PointHistor
 import com.example.book2onandonuserservice.point.domain.dto.response.PointSummaryResponseDto;
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointReason;
+import com.example.book2onandonuserservice.point.exception.AdminAdjustPointNegativeBalanceException;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
+import com.example.book2onandonuserservice.point.exception.InvalidAdminAdjustPointException;
+import com.example.book2onandonuserservice.point.exception.InvalidPointRateException;
+import com.example.book2onandonuserservice.point.exception.InvalidRefundPointException;
+import com.example.book2onandonuserservice.point.exception.PointBalanceIntegrityException;
+import com.example.book2onandonuserservice.point.exception.RefundPointRangeExceededException;
 import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
+import com.example.book2onandonuserservice.point.exception.UserIdMismatchException;
 import com.example.book2onandonuserservice.point.repository.PointHistoryRepository;
-import com.example.book2onandonuserservice.point.support.pointHistory.PointCalculationHelper;
-import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryMapper;
-import com.example.book2onandonuserservice.point.support.pointHistory.PointHistoryValidator;
-import com.example.book2onandonuserservice.point.support.pointHistory.UserReferenceLoader;
+import com.example.book2onandonuserservice.point.support.pointhistory.PointCalculationHelper;
+import com.example.book2onandonuserservice.point.support.pointhistory.PointHistoryMapper;
+import com.example.book2onandonuserservice.point.support.pointhistory.PointHistoryValidator;
+import com.example.book2onandonuserservice.point.support.pointhistory.UserReferenceLoader;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,9 +47,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     private final PointHistoryMapper pointHistoryMapper;
     private final PointHistoryValidator pointHistoryValidator;
 
-    // TODO 탈퇴 시 포인트 삭제(userId만 받기)
-    // TODO view 필요한 정보 -> 보유 포인트(totalPoint), 이번달 적립, 이번달 사용, 소멸 예정 포인트, 포인트 내역(필터: 전체, 사용, 적립)
-
     // ===== 공통 유틸 =====
     // 1. 현재 보유 포인트 "숫자만" 필요할 때 사용하는 내부 헬퍼
     private int getLatestTotal(Long userId) {
@@ -56,14 +60,12 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // 2025-01-01 00:00:00 지급 -> 2026-01-01 23:59:59.999999까지 사용 가능
     private LocalDateTime getDefaultExpireAt() {
         LocalDate expireDate = LocalDate.now().plusYears(1);
-//        return expireDate.atTime(23, 59, 59, 999999000);
         return expireDate.atStartOfDay().minusNanos(1);
     }
 
     // 3. 회원가입 적립 전용 만료일 (10일)
     private LocalDateTime getSignupExpireAt() {
         LocalDate expireDate = LocalDate.now().plusDays(10);
-//        return expireDate.atTime(23, 59, 59, 999999000);
         return expireDate.atStartOfDay().minusNanos(1);
     }
 
@@ -74,6 +76,31 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     public Page<PointHistoryResponseDto> getMyPointHistory(Long userId, Pageable pageable) {
         Page<PointHistory> page =
                 pointHistoryRepository.findAllByUserUserIdOrderByPointCreatedDateDesc(userId, pageable);
+        return page.map(pointHistoryMapper::toDto);
+    }
+
+    // 1-1. 포인트 내역 조회 (필터: 적립/사용)
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PointHistoryResponseDto> getMyPointHistoryByType(Long userId, String type, Pageable pageable) {
+
+        Page<PointHistory> page;
+        //GET /api/points/history?type=EARN
+        if ("EARN".equalsIgnoreCase(type)) {
+            page = pointHistoryRepository
+                    .findByUserUserIdAndPointHistoryChangeGreaterThanOrderByPointCreatedDateDesc(
+                            userId, 0, pageable);
+        }
+        //GET /api/points/history?type=USE
+        else if ("USE".equalsIgnoreCase(type)) {
+            page = pointHistoryRepository
+                    .findByUserUserIdAndPointHistoryChangeLessThanOrderByPointCreatedDateDesc(
+                            userId, 0, pageable);
+        } else {
+            page = pointHistoryRepository
+                    .findAllByUserUserIdOrderByPointCreatedDateDesc(userId, pageable);
+        }
+
         return page.map(pointHistoryMapper::toDto);
     }
 
@@ -127,47 +154,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     }
 
     // 3-2. 리뷰 작성 적립 (일반 / 사진)
-//    @Override
-//    public EarnPointResponseDto earnReviewPoint(EarnReviewPointRequestDto dto) {
-//
-//        Long userId = dto.getUserId();
-//        Long reviewId = dto.getReviewId();
-//        Long orderId = dto.getOrderId();
-//        PointReviewType reviewType = dto.getReviewType();
-//
-//        // 1) 리뷰 중복 적립 방지
-//        pointHistoryValidator.validateReviewNotDuplicated(reviewId);
-//
-//        Users user = userReferenceLoader.getReference(userId);
-//        int latestTotal = getLatestTotal(userId);
-//
-//        // 2) 리뷰 타입에 따른 정책명 결정
-//        String policyName = switch (reviewType) {
-//            case PHOTO -> "REVIEW_PHOTO";
-//            case TEXT -> "REVIEW_TEXT";
-//        };
-//
-//        int change = pointCalculationHelper.calculateByPolicyName(policyName);
-//        if (change <= 0) {
-//            return new EarnPointResponseDto(0, latestTotal, PointReason.REVIEW);
-//        }
-//
-//        int newTotal = latestTotal + change;
-//
-//        PointHistory history = pointHistoryMapper.toEarnEntity(
-//                user,
-//                PointReason.REVIEW,
-//                change,
-//                newTotal,
-//                orderId,
-//                reviewId,
-//                null,
-//                getDefaultExpireAt()
-//        );
-//        pointHistoryRepository.save(history);
-//
-//        return new EarnPointResponseDto(change, newTotal, PointReason.REVIEW);
-//    }
     @Override
     public EarnPointResponseDto earnReviewPoint(EarnReviewPointRequestDto dto) {
 
@@ -204,7 +190,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         pointHistoryRepository.save(history);
 
         return new EarnPointResponseDto(change, newTotal, PointReason.REVIEW);
-//        return ResponseEntity.ok().build(); // TODO 리턴타입을 EarnPointResponseDto? Void?
     }
 
     // 3-3. 도서 결제 적립 (유저 등급별 기본 적립률 책정)
@@ -222,7 +207,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         // 2) 금액/비율 검증
         pointHistoryValidator.validatePositiveAmount(pureAmount, "주문 금액은 0보다 커야 합니다.");
         if (gradeRate == null || gradeRate <= 0) {
-            throw new IllegalArgumentException("등급 적립률은 0보다 커야 합니다.");
+            throw new InvalidPointRateException(gradeRate);
         }
 
         Users user = userReferenceLoader.getReference(userId);
@@ -253,7 +238,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
     // 4. 포인트 사용
     // “결제 성공이 확정된 시점(구매확정 후)”에만 적용되도록 -> 이는 주문에서 요청을 줘야 알 수 있음. 그니까 그냥 포인트는 orderId만 받아 사용하게끔만...
-    // TODO 만료 스케줄러와 동시 실행될 가능성 고려
+    // -> 만료 스케줄러와 동시 실행될 가능성 고려
     @Override
     public EarnPointResponseDto usePoint(UsePointRequestDto dto) {
 
@@ -269,16 +254,15 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         pointHistoryValidator.validatePositiveAmount(useAmount, "사용 포인트는 0보다 커야 합니다.");
         // 같은 주문에 대한 중복 사용 방지
         pointHistoryValidator.validateUseNotDuplicated(orderId);
-
         int latestTotal = getLatestTotal(userId);
-        // latestTotal >= useAmount인지 확인
+        // 잔액 부족 검증
         if (latestTotal < useAmount) {
             throw new InsufficientPointException(latestTotal, useAmount);
         }
 
         Users user = userReferenceLoader.getReference(userId);
 
-        // 2) FIFO 방식으로 remaining_point 차감
+        // 2) FIFO 로직을 위한 데이터 준비
         int usePoint = useAmount; // 이번 주문에서 사용하기로 한 포인트
         List<PointHistory> earnRows =
                 // 잔액 확인: '적립(+)은 되었지만 아직 남아있는 포인트'만 조회
@@ -289,7 +273,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                         0
                 );
 
-        // 3) 위의 리스트 earnRows을 순회
+        // 3) (위의 리스트 earnRows을 순회하며) FIFO방식으로 remaining_point 차감
         for (PointHistory row : earnRows) {
             // 남은 사용량(remainToUse)이 0이 될 때까지
             if (usePoint <= 0) {
@@ -306,7 +290,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         }
 
         if (usePoint > 0) {
-            throw new IllegalStateException("remaining_point 합계가 부족합니다. 데이터 정합성을 확인하세요.");
+            throw new PointBalanceIntegrityException();
         }
 
         // 4) 사용 이력 row 생성
@@ -340,13 +324,10 @@ public class PointHistoryServiceImpl implements PointHistoryService {
             return new EarnPointResponseDto(0, beforeTotal, PointReason.REFUND);
         }
 
-        Users user = useHistories.get(0).getUser();
+        Users user = useHistories.getFirst().getUser();
         Long historyUserId = user.getUserId();
         if (!historyUserId.equals(userId)) {
-            throw new IllegalArgumentException(
-                    "해당 주문의 포인트 사용 이력과 요청 userId가 일치하지 않습니다. " +
-                            "orderId=" + orderId + ", historyUserId=" + historyUserId + ", requestUserId=" + userId
-            );
+            throw new UserIdMismatchException(orderId, historyUserId, userId);
         }
 
         // 2) 이 주문에서 실제로 사용된 포인트 합계 구하기
@@ -380,40 +361,44 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // 5. 포인트 반환 (반품)
     // 리뷰 삭제는 구현 안한다고 하셔서 포인트 반환도 리뷰 반환은 제외
     @Override
-    // TODO 이미 사용해버려서 remaining이 0이면 회수할 시 전체 포인트가 마이너스가 됨. -> 구매 확정 처리로 방지
     public EarnPointResponseDto refundPoint(RefundPointRequestDto dto) {
 
-        //TODO 현재 코드에서는 usedPoint가 “이 주문에서 실제로 사용한 포인트”인지 검증하지 않는다.
-        // PointHistory에서 PointReason.USE & orderId로 실제 사용 포인트를 직접 조회해서 쓰거나,
-        // 최소한 usedPoint <= 해당 주문 USE 이력의 절대값 정도는 검증하는 게 좋을 듯.
         Long userId = dto.getUserId();
         Long orderId = dto.getOrderId();
         Long returnId = dto.getReturnId();
         int usedPoint = dto.getUsedPoint() != null ? dto.getUsedPoint() : 0;
         int returnAmount = dto.getReturnAmount() != null ? dto.getReturnAmount() : 0;
 
-        // 동일 returnId 중복 처리 방지
+        // 5-1. 동일 returnId 중복 처리 방지
         pointHistoryValidator.validateReturnNotDuplicated(returnId);
 
         Users user = userReferenceLoader.getReference(userId);
-        int beforeTotal = getLatestTotal(userId);
+        int beforeTotal = getLatestTotal(userId); // 현재 총 포인트
         int latestTotal = beforeTotal;
 
-        // 5-1. 사용 포인트 복구 (+usedPoint)
-        // TODO usedPoint > 0일 때, 해당 주문의 USE 이력 합(useSum)을 구해서 usedPoint <= useSum인지 검증.
-        //  아니면 validatePointRange와 같은 검증 헬퍼 하나 더 두는 방식.
+        // 5-2. 이 주문에서 실제 사용된 포인트 합계를 조회
+        int usedSum = pointHistoryRepository.sumUsedPointByOrder(orderId, PointReason.USE);
+        if (usedSum < 0) {
+            usedSum = -usedSum;
+        }
+
+        // 사용 이력이 존재하지 않는데 usedPoint > 0이면 오류
+        if (usedPoint > 0 && usedSum <= 0) {
+            throw new InvalidRefundPointException("해당 주문에서 사용된 포인트가 없습니다.");
+        }
+        // 사용 요청 포인트가 실제 사용 포인트 초과하면 오류
+        if (usedPoint > usedSum) {
+            throw new RefundPointRangeExceededException(usedPoint, usedSum);
+        }
+        // usedPoint 양수 검증
+        if (usedPoint < 0) {
+            throw new InvalidRefundPointException("복구 포인트는 0 이상이어야 합니다.");
+        }
+
+        // 5-3. 사용 포인트 복구 (+usedPoint)
         if (usedPoint > 0) {
-            pointHistoryValidator.validatePositiveAmount(usedPoint, "복구 포인트는 0보다 커야 합니다.");
-
-            int usedSum = pointHistoryRepository.sumUsedPointByOrder(orderId, PointReason.USE);
-            if (usedSum <= 0) {
-                throw new IllegalStateException("해당 주문에서 사용된 포인트가 없습니다.");
-            }
-            if (usedPoint > usedSum) {
-                throw new IllegalArgumentException("복구 요청 포인트가 실제 사용 포인트를 초과합니다.");
-            }
-
             int newTotal = latestTotal + usedPoint;
+
             PointHistory restoreHistory = pointHistoryMapper.toEarnEntity(
                     user,
                     PointReason.REFUND,
@@ -424,11 +409,12 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                     returnId,
                     getDefaultExpireAt()
             );
+
             pointHistoryRepository.save(restoreHistory);
             latestTotal = newTotal;
         }
 
-        // 5-2. 반품 금액만큼 포인트 적립 (+returnAmount)
+        // 5-4. 반품 금액만큼 포인트 적립 (+returnAmount)
         if (returnAmount > 0) {
             pointHistoryValidator.validatePositiveAmount(returnAmount, "반품 금액은 0보다 커야 합니다.");
 
@@ -447,40 +433,14 @@ public class PointHistoryServiceImpl implements PointHistoryService {
             latestTotal = newTotal;
         }
 
-        // 5-3. 이 주문에 대해 적립되었던 리뷰 포인트 회수
-//        List<PointHistory> orderHistories = pointHistoryRepository.findByOrderId(orderId);
-//        int reviewEarnSum = 0;
-//        for (PointHistory h : orderHistories) {
-//            if (h.getPointReason() == PointReason.REVIEW && h.getPointHistoryChange() > 0) {
-//                Integer remaining = h.getRemainingPoint();
-//                if (remaining != null && remaining > 0) {
-//                    reviewEarnSum += remaining;
-//                    h.setRemainingPoint(0);   // 이미 회수했으므로 더 이상 사용/만료 대상이 아님
-//                }
-//            }
-//        }
-//
-//        if (reviewEarnSum > 0) {
-//            int newTotal = latestTotal - reviewEarnSum;
-//            PointHistory cancelReviewHistory = pointHistoryMapper.toUseOrDeductEntity(
-//                    user,
-//                    PointReason.REFUND,   // 회수도 REFUND 범주로 기록
-//                    -reviewEarnSum,
-//                    newTotal,
-//                    orderId,
-//                    null,
-//                    returnId
-//            );
-//            pointHistoryRepository.save(cancelReviewHistory);
-//            latestTotal = newTotal;
-//        }
+        // 5-5. 이 주문에 대해 적립되었던 리뷰 포인트 회수 -> 리뷰 삭제는 없으므로 리뷰 포인트 회수 필요 없음
 
         int netChange = latestTotal - beforeTotal;
         return new EarnPointResponseDto(netChange, latestTotal, PointReason.REFUND);
     }
 
     // 6. 포인트 자동 만료 처리
-    // TODO 현실적인 리스크는 동시성(스케줄러 vs 사용자 액션) 정도
+    // -> 동시성(스케줄러 vs 사용자 액션) 정도
     @Override
     public void expirePoints(Long userId) {
         List<PointHistory> expiredRows = pointHistoryValidator.getExpiredEarnRows(userId);
@@ -519,9 +479,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     }
 
     // 7. 7일 내 소멸 예정 조회
-    // TODO 스케줄러/만료 처리와 마찬가지로 “일 단위”로 끊고 싶다면:
-    //  from = LocalDate.now().atStartOfDay()
-    //  to = from.plusDays(days).atStartOfDay()
     @Override
     public ExpiringPointResponseDto getExpiringPoints(Long userId, int days) {
         LocalDateTime now = LocalDateTime.now();
@@ -543,7 +500,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int amount = requestDto.getAmount();
 
         if (amount == 0) {
-            throw new IllegalArgumentException("조정 포인트는 0일 수 없습니다.");
+            throw new InvalidAdminAdjustPointException("조정 포인트는 0일 수 없습니다.");
         }
 
         pointHistoryValidator.validatePositiveAmount(Math.abs(amount), "조정 포인트는 0보다 커야 합니다.");
@@ -551,7 +508,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int latestTotal = getLatestTotal(userId);
         int newTotal = latestTotal + amount;
         if (newTotal < 0) {
-            throw new IllegalStateException("조정 후 포인트가 음수가 될 수 없습니다.");
+            throw new AdminAdjustPointNegativeBalanceException(latestTotal, amount);
         }
 
         Users user = userReferenceLoader.getReference(userId);
@@ -631,7 +588,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int earnedThisMonth = pointHistoryRepository.sumEarnedInPeriod(userId, from, now);
         int usedThisMonth = pointHistoryRepository.sumUsedInPeriod(userId, from, now);
 
-        // 이미 구현돼 있는 메서드 재사용
         ExpiringPointResponseDto expiring = getExpiringPoints(userId, 7);
 
         return new PointSummaryResponseDto(

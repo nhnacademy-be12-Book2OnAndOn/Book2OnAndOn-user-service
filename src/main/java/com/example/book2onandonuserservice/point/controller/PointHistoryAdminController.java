@@ -58,13 +58,4 @@ public class PointHistoryAdminController {
         return ResponseEntity.ok(earnPoint);
     }
 
-    // 4. (관리자) 포인트 만료 처리 -> 자동만료 처리는 스케쥴러 쓰므로 없어도 돰.
-    // POST /users/me/points/expire
-//    @PostMapping("/expire")
-//    public ResponseEntity<Void> expirePoints(
-//            @RequestHeader(USER_ID_HEADER) Long userId
-//    ) {
-//        pointHistoryService.expirePoints(userId);
-//        return ResponseEntity.ok().build();
-//    }
 }

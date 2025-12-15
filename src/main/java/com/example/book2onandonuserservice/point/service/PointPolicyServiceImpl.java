@@ -6,7 +6,7 @@ import com.example.book2onandonuserservice.point.domain.dto.response.PointPolicy
 import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
 import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
-import com.example.book2onandonuserservice.point.support.pointPolicy.PointPolicyValidator;
+import com.example.book2onandonuserservice.point.support.pointpolicy.PointPolicyValidator;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -40,25 +40,6 @@ public class PointPolicyServiceImpl implements PointPolicyService {
     }
 
     // 3. 정책 비율/포인트 수정
-//    @Override
-//    public PointPolicyResponseDto updatePolicyRateAndPoint(Integer policyId, PointPolicyUpdateRequestDto dto) {
-//        PointPolicy policy = pointPolicyRepository.findById(policyId)
-//                .orElseThrow(() -> new PointPolicyNotFoundException(policyId));
-//
-//        pointPolicyValidator.validateRateAndPoint(dto.getPointAddRate(), dto.getPointAddPoint());
-//
-//        if (dto.getPointAddPoint() != null) {
-//            // 고정 포인트 정책으로 변경
-//            policy.setPolicyAddRate(null);
-//            policy.setPolicyAddPoint(dto.getPointAddPoint());
-//        }
-//        else if (dto.getPointAddRate() != null) {
-//            // 비율 정책으로 변경
-//            policy.setPolicyAddPoint(null);
-//            policy.setPolicyAddRate(dto.getPointAddRate());
-//        }
-//        return PointPolicyResponseDto.toDto(policy);
-//    }
     @Override
     public PointPolicyResponseDto updatePolicyPoint(Integer policyId, PointPolicyUpdateRequestDto dto) {
         PointPolicy policy = pointPolicyRepository.findById(policyId)

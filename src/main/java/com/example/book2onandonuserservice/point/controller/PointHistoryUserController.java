@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointRe
 import com.example.book2onandonuserservice.point.domain.dto.response.ExpiringPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointSummaryResponseDto;
+import com.example.book2onandonuserservice.point.exception.UserIdMismatchException;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,21 @@ public class PointHistoryUserController {
         return ResponseEntity.ok(pointHistory);
     }
 
+    // 1-1. 포인트 내역 조회 (적립/사용)
+    // GET /users/me/points?type=EARN
+    // GET /users/me/points?type=USE
+    @GetMapping(params = "type")
+    public ResponseEntity<Page<PointHistoryResponseDto>> getMyPointHistoryByType(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestParam("type") String type,
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
+        Page<PointHistoryResponseDto> pointHistory =
+                pointHistoryService.getMyPointHistoryByType(userId, type, pageable);
+
+        return ResponseEntity.ok(pointHistory);
+    }
+
     // 2. 현재 포인트 조회 (숫자만)
     // GET /users/me/points/current
     @GetMapping("/current")
@@ -72,7 +88,7 @@ public class PointHistoryUserController {
             @Valid @RequestBody EarnReviewPointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
         dto.setUserId(userId);
         EarnPointResponseDto earnPoint = pointHistoryService.earnReviewPoint(dto);
@@ -87,7 +103,7 @@ public class PointHistoryUserController {
             @Valid @RequestBody EarnOrderPointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
         dto.setUserId(userId);
         EarnPointResponseDto earnPoint = pointHistoryService.earnOrderPoint(dto);
@@ -102,7 +118,7 @@ public class PointHistoryUserController {
             @Valid @RequestBody UsePointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
         dto.setUserId(userId);
         EarnPointResponseDto earnPoint = pointHistoryService.usePoint(dto);
@@ -117,7 +133,7 @@ public class PointHistoryUserController {
             @Valid @RequestBody RefundPointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
         dto.setUserId(userId);
         EarnPointResponseDto earnPoint = pointHistoryService.refundPoint(dto);

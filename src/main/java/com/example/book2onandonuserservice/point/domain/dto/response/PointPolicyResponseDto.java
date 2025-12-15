@@ -10,7 +10,6 @@ public class PointPolicyResponseDto {
 
     private Integer pointPolicyId;
     private String pointPolicyName;
-    //    private Double pointAddRate;
     private Integer pointAddPoint;
     private Boolean pointIsActive;
 
@@ -19,10 +18,8 @@ public class PointPolicyResponseDto {
         return PointPolicyResponseDto.builder()
                 .pointPolicyId(pointPolicy.getPolicyId())
                 .pointPolicyName(pointPolicy.getPolicyName())
-//                .pointAddRate(pointPolicy.getPolicyAddRate())
                 .pointAddPoint(pointPolicy.getPolicyAddPoint())
                 .pointIsActive(pointPolicy.getPolicyIsActive())
                 .build();
     }
-
 }

@@ -7,15 +7,20 @@ import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedEx
 import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingException;
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponse;
+import com.example.book2onandonuserservice.point.exception.AdminAdjustPointNegativeBalanceException;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InactivePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
+import com.example.book2onandonuserservice.point.exception.InvalidAdminAdjustPointException;
 import com.example.book2onandonuserservice.point.exception.InvalidAuthenticationException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
+import com.example.book2onandonuserservice.point.exception.InvalidPointRateException;
+import com.example.book2onandonuserservice.point.exception.InvalidRefundPointException;
 import com.example.book2onandonuserservice.point.exception.OrderAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.exception.PointAlreadyUsedForOrderException;
 import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
 import com.example.book2onandonuserservice.point.exception.PointRangeExceededException;
+import com.example.book2onandonuserservice.point.exception.RefundPointRangeExceededException;
 import com.example.book2onandonuserservice.point.exception.ReturnAlreadyProcessedException;
 import com.example.book2onandonuserservice.point.exception.ReviewAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
@@ -37,6 +42,7 @@ import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -46,7 +52,7 @@ public class GlobalExceptionHandler {
     //400 Bad Request
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+        String errorMessage = ex.getBindingResult().getAllErrors().getFirst().getDefaultMessage();
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
@@ -66,6 +72,10 @@ public class GlobalExceptionHandler {
             GradeNameDuplicateException.class,
             DuplicatePointPolicyException.class,
             InvalidPointPolicyException.class,
+            InvalidPointRateException.class,
+            InvalidRefundPointException.class,
+            RefundPointRangeExceededException.class,
+            AdminAdjustPointNegativeBalanceException.class,
             UserIdMismatchException.class,
             OrderAlreadyRewardedException.class,
             ReviewAlreadyRewardedException.class,
@@ -86,6 +96,21 @@ public class GlobalExceptionHandler {
                 "BAD_REQUEST",
                 ex.getMessage()
         );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    //400 Bad Request - MISSING_HEADER
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(
+            MissingRequestHeaderException ex
+    ) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "MISSING_HEADER",
+                "필수 요청 헤더가 누락되었습니다: " + ex.getHeaderName()
+        );
+
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -145,7 +170,10 @@ public class GlobalExceptionHandler {
     }
 
     // 409 Conflict
-    @ExceptionHandler(SignupPointAlreadyGrantedException.class)
+    @ExceptionHandler({
+            SignupPointAlreadyGrantedException.class,
+            InvalidAdminAdjustPointException.class
+    })
     public ResponseEntity<ErrorResponse> handleSignupPointAlreadyGranted(RuntimeException ex) {
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),
@@ -158,7 +186,7 @@ public class GlobalExceptionHandler {
 
 
     //500 Internal Server Error
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler({Exception.class})
     public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
         log.error("시스템 오류 발생: " + ex); //서버 로그에 로그를 남김
         ErrorResponse response = new ErrorResponse(
@@ -176,7 +204,7 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_GATEWAY.value(),
-                "BAD_REQUEST",
+                "PAYCO_BAD_GATEWAY",
                 ex.getMessage()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_GATEWAY);

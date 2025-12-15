@@ -8,7 +8,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 
 @EnableFeignClients
 @EnableDiscoveryClient
-@EnableRedisRepositories(basePackages = "com.example.book2onandonuserservice.auth.repository")
+@EnableRedisRepositories
 @SpringBootApplication
 public class Book2onandonuserserviceApplication {
 

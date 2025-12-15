@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.user.domain.entity;
 
+import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -11,11 +12,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -80,6 +84,9 @@ public class Users {
 
     @Column(name = "withdraw_reason")
     private String withdrawReason;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserAuth> userAuths = new ArrayList<>();
 
     //생성자
     private void initDefaults(String name, String nickname) {

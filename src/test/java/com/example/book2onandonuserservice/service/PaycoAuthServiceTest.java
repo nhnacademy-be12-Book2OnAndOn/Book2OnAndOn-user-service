@@ -30,6 +30,7 @@ import com.example.book2onandonuserservice.user.exception.UserWithdrawnException
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -76,7 +77,7 @@ class PaycoAuthServiceTest {
         basicGrade = new UserGrade(1L, GradeName.BASIC, 0.01, 0);
     }
 
-    // Helper: PaycoMemberResponse Mock 생성
+    // Helper: PaycoMemberResponse Mock 생성 (String 생일 반환)
     private PaycoMemberResponse createMockMemberResponse(boolean isSuccess, String idNo, String email, String name,
                                                          String mobile, String birthday) {
         PaycoMemberResponse response = mock(PaycoMemberResponse.class);
@@ -105,18 +106,19 @@ class PaycoAuthServiceTest {
     }
 
     @Test
-    @DisplayName("로그인 성공 - 이미 연동된 계정 (ACTIVE)")
+    @DisplayName("로그인 성공 - 이미 연동된 계정 (ACTIVE) + 정보 동기화(Sync) 확인")
     void login_Success_ExistingAuth() {
         // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
+        // [변경] 생일을 "0101" (MMdd) 포맷으로 설정
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "홍길동",
-                "01012345678", "20000101");
+                "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
         Users user = new Users();
         user.initSocialAccount("홍길동", "홍길동");
-        // status ACTIVE 기본값
+        // 초기 상태: 생일 null, 전화번호 null 이라고 가정
 
         UserAuth existingAuth = UserAuth.builder().user(user).build();
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(
@@ -131,6 +133,9 @@ class PaycoAuthServiceTest {
         // Then
         assertThat(result.accessToken()).isEqualTo("jwt-access");
         verify(usersRepository, never()).save(any());
+
+        assertThat(user.getBirth()).isEqualTo(LocalDate.of(2020, 1, 1));
+        assertThat(user.getPhone()).isEqualTo("01012345678");
     }
 
     @Test
@@ -156,25 +161,22 @@ class PaycoAuthServiceTest {
 
         // 이메일 없음
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", null, "홍길동", "01012345678",
-                "20000101");
+                "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
-        given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.empty());
-
-        // When & Then
         assertThatThrownBy(() -> paycoAuthService.login(loginRequest))
                 .isInstanceOf(PaycoInfoMissingException.class);
+
+        verify(userAuthRepository, never()).findByProviderAndProviderUserId(anyString(), anyString());
     }
 
     @Test
-    @DisplayName("로그인 성공 - 신규 회원가입 (포인트 적립 포함)")
+    @DisplayName("로그인 성공 - 신규 회원가입 (포인트 적립 및 생일 파싱 확인)")
     void login_Success_NewUser() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
-        // 전화번호 형식 변환 테스트 (8210... -> 010...)
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "new@test.com", "신규",
-                "821012345678", "19991231");
+                "821012345678", "1231");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.empty());
@@ -184,30 +186,31 @@ class PaycoAuthServiceTest {
 
         Users savedUser = new Users();
         savedUser.initSocialAccount("신규", "신규");
-        ReflectionTestUtils.setField(savedUser, "userId", 100L); // ID 주입 for Point Service
+        ReflectionTestUtils.setField(savedUser, "userId", 100L);
 
         given(usersRepository.save(any(Users.class))).willReturn(savedUser);
 
         TokenResponseDto expectedToken = new TokenResponseDto("jwt-access", "jwt-refresh", "Bearer", 3600L);
         given(authTokenService.issueToken(savedUser)).willReturn(expectedToken);
 
-        // When
         paycoAuthService.login(loginRequest);
 
-        // Then
-        verify(usersRepository).save(any(Users.class)); // 유저 저장 확인
-        verify(userAuthRepository).save(any(UserAuth.class)); // 연동 정보 저장 확인
-        verify(pointHistoryService).earnSignupPoint(100L); // 포인트 적립 확인
+        verify(usersRepository).save(any(Users.class));
+        verify(userAuthRepository).save(any(UserAuth.class));
+        verify(pointHistoryService).earnSignupPoint(100L);
+
+        assertThat(savedUser.getPhone()).isEqualTo("01012345678");
+        assertThat(savedUser.getBirth()).isEqualTo(LocalDate.of(2020, 12, 31));
     }
 
     @Test
-    @DisplayName("로그인 성공 - 기존 이메일 계정에 연동 (Link)")
+    @DisplayName("로그인 성공 - 기존 이메일 계정에 연동 (Link) 및 동기화")
     void login_Success_LinkAccount() {
         // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "exist@test.com", "기존",
-                "01012345678", "19991231");
+                "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.empty());
@@ -223,26 +226,29 @@ class PaycoAuthServiceTest {
         paycoAuthService.login(loginRequest);
 
         // Then
-        verify(userAuthRepository).save(any(UserAuth.class)); // 연동 테이블에 저장되었는지 확인
-        verify(usersRepository, never()).save(any(Users.class)); // 유저는 새로 저장 안 함
+        verify(userAuthRepository).save(any(UserAuth.class));
+        verify(usersRepository, never()).save(any(Users.class));
+
+        // [추가 검증] 동기화 확인
+        assertThat(existingUser.getBirth()).isEqualTo(LocalDate.of(2020, 1, 1));
     }
 
     @Test
     @DisplayName("로그인 실패 - 휴면 계정")
     void login_Fail_DormantUser() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "휴면",
-                "01012345678", "20000101");
+                "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
         Users dormantUser = new Users();
+        dormantUser.initLocalAccount("dormantId", "password", "휴면", "nick");
         dormantUser.changeStatus(Status.DORMANT);
+
         UserAuth auth = UserAuth.builder().user(dormantUser).build();
 
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.of(auth));
 
-        // When & Then
         assertThatThrownBy(() -> paycoAuthService.login(loginRequest))
                 .isInstanceOf(UserDormantException.class);
     }
@@ -250,19 +256,19 @@ class PaycoAuthServiceTest {
     @Test
     @DisplayName("로그인 실패 - 탈퇴 계정")
     void login_Fail_WithdrawnUser() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "탈퇴",
-                "01012345678", "20000101");
+                "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
         Users withdrawnUser = new Users();
+        withdrawnUser.initLocalAccount("withdrawnId", "password", "탈퇴", "nick");
         withdrawnUser.changeStatus(Status.CLOSED);
+
         UserAuth auth = UserAuth.builder().user(withdrawnUser).build();
 
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.of(auth));
 
-        // When & Then
         assertThatThrownBy(() -> paycoAuthService.login(loginRequest))
                 .isInstanceOf(UserWithdrawnException.class);
     }

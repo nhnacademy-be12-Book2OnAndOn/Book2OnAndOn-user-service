@@ -166,6 +166,9 @@ public class UserServiceImpl implements UserService {
     public void deleteUserByAdmin(Long userId, String reason) {
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("SUPER ADMIN 계정은 강제 탈퇴시킬 수 없습니다.");
+        }
 
         if (user.getStatus() == Status.CLOSED) {
             throw new IllegalStateException("이미 탈퇴한 회원입니다.");

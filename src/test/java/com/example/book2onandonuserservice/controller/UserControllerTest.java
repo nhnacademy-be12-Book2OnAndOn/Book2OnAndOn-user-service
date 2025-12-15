@@ -81,7 +81,8 @@ class UserControllerTest {
                 "nick",
                 Role.USER,
                 "BASIC",
-                "ACTIVE"
+                "ACTIVE",
+                "local"
         );
 
         Mockito.when(userService.getMyInfo(1L)).thenReturn(dto);
@@ -111,7 +112,8 @@ class UserControllerTest {
                 "newNick",
                 Role.USER,
                 "BASIC",
-                "ACTIVE"
+                "ACTIVE",
+                "local"
         );
 
         Mockito.when(userService.updateMyInfo(eq(1L), any())).thenReturn(response);

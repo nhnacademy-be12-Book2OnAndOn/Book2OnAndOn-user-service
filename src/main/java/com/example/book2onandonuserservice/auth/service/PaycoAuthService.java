@@ -50,7 +50,6 @@ public class PaycoAuthService {
 
     private static final String PAYCO_PROVIDER = "payco";
 
-    //페이코 로그인
     @Transactional
     public TokenResponseDto login(PaycoLoginRequestDto request) {
         // Payco Access Token 발급
@@ -74,34 +73,38 @@ public class PaycoAuthService {
         }
 
         PaycoMemberResponse.PaycoMember paycoInfo = memberResponse.getData().getMember();
+
+        // 정보 추출
         String providerId = paycoInfo.getIdNo();
         String email = paycoInfo.getEmail();
         String name = paycoInfo.getName();
         String phone = parsePhoneNumber(paycoInfo.getMobile());
         LocalDate birth = parseBirthday(paycoInfo.getBirthday());
 
-        Optional<UserAuth> existingAuth = userAuthRepository.findByProviderAndProviderUserId(PAYCO_PROVIDER,
-                providerId);
-
-        if (existingAuth.isPresent()) {
-            Users user = existingAuth.get().getUser();
-            validateUserStatus(user);
-            user.updateLastLogin();
-            return authTokenService.issueToken(user);
-        }
-
         if (!StringUtils.hasText(email) || !StringUtils.hasText(name)) {
             throw new PaycoInfoMissingException();
         }
 
-        // 신규 가입 또는 기존 계정 연동
-        Users user = usersRepository.findByEmail(email)
-                .orElseGet(() -> createNewUser(name, email, phone, birth));
+        // 회원 조회 및 생성
+        Users user;
+        Optional<UserAuth> existingAuth = userAuthRepository.findByProviderAndProviderUserId(PAYCO_PROVIDER,
+                providerId);
 
-        // PAYCO 연동 정보 저장
-        linkUserWithPayco(user, providerId);
+        if (existingAuth.isPresent()) {
+            user = existingAuth.get().getUser();
+        } else {
+            user = usersRepository.findByEmail(email)
+                    .orElseGet(() -> createNewUser(name, email, phone, birth));
+            linkUserWithPayco(user, providerId);
+        }
 
-        // 8. 로그인 처리 및 토큰 발급
+        // 정보 동기화
+        if (user.getUserLoginId() == null) {
+            user.initSocialAccount(name, name);
+        }
+        user.setContactInfo(email, phone, birth);
+
+        // 로그인 처리
         validateUserStatus(user);
         user.updateLastLogin();
 
@@ -109,6 +112,23 @@ public class PaycoAuthService {
     }
 
     // === Private Helper Methods ===
+
+    private LocalDate parseBirthday(String birthdayStr) {
+        if (!StringUtils.hasText(birthdayStr)) {
+            return null;
+        }
+        try {
+            if (birthdayStr.length() == 4) {
+                return LocalDate.parse("2020" + birthdayStr, DateTimeFormatter.ofPattern("yyyyMMdd"));
+            }
+            if (birthdayStr.length() == 8) {
+                return LocalDate.parse(birthdayStr, DateTimeFormatter.ofPattern("yyyyMMdd"));
+            }
+        } catch (Exception e) {
+            log.warn("생일 데이터 파싱 실패: {}", birthdayStr);
+        }
+        return null;
+    }
 
     private Users createNewUser(String name, String email, String phone, LocalDate birth) {
         UserGrade defaultGrade = userGradeRepository.findByGradeName(GradeName.BASIC)
@@ -120,7 +140,6 @@ public class PaycoAuthService {
         newUser.changeGrade(defaultGrade);
         Users savedUser = usersRepository.save(newUser);
 
-        // 회원가입 포인트 적립
         try {
             pointHistoryService.earnSignupPoint(savedUser.getUserId());
             log.info("PAYCO 회원가입 포인트 적립 완료: userId={}", savedUser.getUserId());
@@ -157,12 +176,5 @@ public class PaycoAuthService {
             return "0" + cleanNumber.substring(2);
         }
         return cleanNumber;
-    }
-
-    private LocalDate parseBirthday(String paycoBirthday) {
-        if (paycoBirthday == null || paycoBirthday.length() != 8) {
-            return null;
-        }
-        return LocalDate.parse(paycoBirthday, DateTimeFormatter.ofPattern("yyyyMMdd"));
     }
 }

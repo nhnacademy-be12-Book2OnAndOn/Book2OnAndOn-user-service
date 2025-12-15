@@ -4,6 +4,6 @@ public record TokenResponseDto(
         String accessToken,
         String refreshToken,
         String tokenType, //Bearer
-        long expriesIn //유호시간
+        long expiresIn //유호시간
 ) {
 }

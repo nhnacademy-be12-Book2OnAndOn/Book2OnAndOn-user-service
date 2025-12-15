@@ -21,9 +21,6 @@ public class EarnOrderPointRequestDto {
     @NotNull
     private Integer pureAmount;
 
-//    @NotNull
-//    private String gradeName;
-
     @NotNull
     private Double pointAddRate;
 

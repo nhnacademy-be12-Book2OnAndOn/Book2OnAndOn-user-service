@@ -18,6 +18,8 @@ public interface PointHistoryService {
     // 1. 포인트 전체 내역 조회 (마이페이지)
     Page<PointHistoryResponseDto> getMyPointHistory(Long userId, Pageable pageable);
 
+    Page<PointHistoryResponseDto> getMyPointHistoryByType(Long userId, String type, Pageable pageable);
+
     // 2. 현재 보유 포인트 조회 (숫자만)
     CurrentPointResponseDto getMyCurrentPoint(Long userId);
 

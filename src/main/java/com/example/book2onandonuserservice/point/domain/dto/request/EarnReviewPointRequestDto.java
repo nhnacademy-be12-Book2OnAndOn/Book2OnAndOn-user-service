@@ -18,13 +18,6 @@ public class EarnReviewPointRequestDto {
     @NotNull
     private Long reviewId;
 
-//    @NotNull
-//    private Long orderId;
-//
-//    @NotNull
-//    private PointReviewType reviewType; // TEXT / PHOTO
-
-    @NotNull
     private boolean hasImage; // T: review_photo, F: review_text
 
 }

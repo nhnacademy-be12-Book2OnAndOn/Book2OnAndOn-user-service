@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.point.support.pointHistory;
+package com.example.book2onandonuserservice.point.support.pointhistory;
 
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;

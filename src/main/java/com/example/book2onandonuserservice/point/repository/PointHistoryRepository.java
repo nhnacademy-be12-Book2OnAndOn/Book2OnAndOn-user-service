@@ -15,6 +15,13 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     // 회원의 포인트 전체 이력 (마이페이지)
     Page<PointHistory> findAllByUserUserIdOrderByPointCreatedDateDesc(Long userId, Pageable pageable);
 
+    Page<PointHistory> findByUserUserIdAndPointHistoryChangeGreaterThanOrderByPointCreatedDateDesc(Long userId,
+                                                                                                   int zero,
+                                                                                                   Pageable pageable);
+
+    Page<PointHistory> findByUserUserIdAndPointHistoryChangeLessThanOrderByPointCreatedDateDesc(Long userId, int zero,
+                                                                                                Pageable pageable);
+
     // 회원의 현재 보유 포인트 (가장 최근 이력 1건)
     Optional<PointHistory> findTop1ByUserUserIdOrderByPointCreatedDateDesc(Long userId);
 

@@ -4,7 +4,6 @@ import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
-import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
@@ -17,7 +16,11 @@ import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.UserGrade;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedException;
+import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
+import com.example.book2onandonuserservice.user.exception.SameAsOldPasswordException;
+import com.example.book2onandonuserservice.user.exception.SuperAdminDeletionException;
+import com.example.book2onandonuserservice.user.exception.UserAlreadyWithdrawnException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
 import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
@@ -48,16 +51,6 @@ public class UserServiceImpl implements UserService {
     private Users findUserOrThrow(Long userId) {
         return usersRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
-    }
-
-    private Long fetchUserPoint(Long userId) {
-        try {
-            CurrentPointResponseDto response = pointHistoryService.getMyCurrentPoint(userId);
-            return (long) response.getCurrentPoint();
-        } catch (Exception e) {
-            log.warn("포인트 조회 실패 (userId={}): {}", userId, e.getMessage());
-            return 0L;
-        }
     }
 
     @Override
@@ -112,7 +105,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("새 비밀번호는 기존 비밀번호와 같을 수 없습니다.");
+            throw new SameAsOldPasswordException();
         }
 
         String encodedPassword = passwordEncoder.encode(request.newPassword());
@@ -136,6 +129,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponseDto getUserInfo(Long userId) {
+        log.info("[Admin Access] 회원 정보 상세 조회 요청: userId={}", userId);
         Users user = findUserOrThrow(userId);
         return UserResponseDto.fromEntity(user);
     }
@@ -156,7 +150,7 @@ public class UserServiceImpl implements UserService {
 
         if (request.gradeName() != null) {
             UserGrade grade = userGradeRepository.findByGradeName(GradeName.valueOf(request.gradeName()))
-                    .orElseThrow(() -> new RuntimeException("존재하지 않는 등급입니다."));
+                    .orElseThrow(GradeNotFoundException::new);
             user.changeGrade(grade);
         }
     }
@@ -167,11 +161,11 @@ public class UserServiceImpl implements UserService {
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
         if (user.getRole() == Role.SUPER_ADMIN) {
-            throw new IllegalArgumentException("SUPER ADMIN 계정은 강제 탈퇴시킬 수 없습니다.");
+            throw new SuperAdminDeletionException();
         }
 
         if (user.getStatus() == Status.CLOSED) {
-            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+            throw new UserAlreadyWithdrawnException();
         }
 
         user.withDraw("[관리자 처리] " + reason);

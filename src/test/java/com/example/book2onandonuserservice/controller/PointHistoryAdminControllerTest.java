@@ -79,7 +79,6 @@ class PointHistoryAdminControllerTest {
     @Test
     @DisplayName("POST /admin/points/adjust : 관리자 수동 지급/차감")
     void adjustPointByAdmin_ok() throws Exception {
-        // 중요: 아래 DTO 생성 부분은 너의 PointHistoryAdminAdjustRequestDto 필드/생성자에 맞춰 수정
         PointHistoryAdminAdjustRequestDto req = Mockito.mock(PointHistoryAdminAdjustRequestDto.class);
 
         given(pointHistoryService.adjustPointByAdmin(any(PointHistoryAdminAdjustRequestDto.class)))

@@ -32,42 +32,42 @@ import lombok.NoArgsConstructor;
 public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "user_password", length = 255)
+    @Column(name = "user_password", length = 255, nullable = false)
     private String password;
 
-    @Column(name = "user_login_id", unique = true, length = 30)
+    @Column(name = "user_login_id", unique = true, length = 30, nullable = false)
     private String userLoginId;
 
-    @Column(name = "user_name", length = 50)
+    @Column(name = "user_name", length = 50, nullable = false)
     @Size(max = 50)
     private String name;
 
-    @Column(name = "user_email", unique = true, length = 500)
+    @Column(name = "user_email", unique = true, length = 500, nullable = false)
     private String email;
 
-    @Column(name = "user_phone", length = 255)
+    @Column(name = "user_phone", length = 255, nullable = false)
     @Convert(converter = EncryptStringConverter.class)
     private String phone;
 
-    @Column(name = "user_birth")
+    @Column(name = "user_birth", nullable = false)
     private LocalDate birth;
 
-    @Column(name = "user_created_at")
+    @Column(name = "user_created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "user_latest_login")
+    @Column(name = "user_latest_login", nullable = false)
     private LocalDateTime lastLoginAt;
 
     @NotNull
-    @Column(name = "user_role")
+    @Column(name = "user_role", nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
 
     @NotNull
-    @Column(name = "user_status")
+    @Column(name = "user_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -79,7 +79,7 @@ public class Users {
 
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "user_grade_id")
+    @JoinColumn(name = "user_grade_id", nullable = false)
     private UserGrade userGrade;
 
     @Column(name = "withdraw_reason")

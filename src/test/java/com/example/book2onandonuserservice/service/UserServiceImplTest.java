@@ -13,7 +13,6 @@ import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.global.dto.RestPage;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
-import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.PasswordChangeRequestDto;
@@ -26,6 +25,8 @@ import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.UserGrade;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
+import com.example.book2onandonuserservice.user.exception.SameAsOldPasswordException;
+import com.example.book2onandonuserservice.user.exception.UserAlreadyWithdrawnException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
 import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
@@ -227,7 +228,7 @@ class UserServiceImplTest {
         given(passwordEncoder.matches("encodedPw", "encodedPw")).willReturn(true);
 
         assertThatThrownBy(() -> userService.changePassword(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(SameAsOldPasswordException.class)
                 .hasMessage("새 비밀번호는 기존 비밀번호와 같을 수 없습니다.");
     }
 
@@ -261,25 +262,10 @@ class UserServiceImplTest {
     @DisplayName("관리자 - 회원 정보 조회")
     void getUserInfo_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(pointHistoryService.getMyCurrentPoint(1L))
-                .willReturn(new CurrentPointResponseDto(100)); // 정상 포인트
 
         UserResponseDto result = userService.getUserInfo(1L);
 
         assertThat(result.userLoginId()).isEqualTo("testUser");
-    }
-
-    @Test
-    @DisplayName("관리자 - 회원 정보 조회 시 포인트 조회 실패하면 0 반환")
-    void getUserInfo_PointFetchFailure() {
-        given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(pointHistoryService.getMyCurrentPoint(1L))
-                .willThrow(new RuntimeException("Point Service Error"));
-
-        UserResponseDto result = userService.getUserInfo(1L);
-
-        assertThat(result.userLoginId()).isEqualTo("testUser");
-        assertThat(result).isNotNull();
     }
 
     @Test
@@ -322,7 +308,7 @@ class UserServiceImplTest {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
 
         assertThatThrownBy(() -> userService.deleteUserByAdmin(1L, "reason"))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(UserAlreadyWithdrawnException.class)
                 .hasMessageContaining("이미 탈퇴한 회원");
     }
 
@@ -403,5 +389,17 @@ class UserServiceImplTest {
         boolean result = userService.checkLoginId("availableId");
 
         assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("전체 회원 수 조회 성공")
+    void countUsers_Success() {
+        long expectedCount = 150L;
+        given(usersRepository.count()).willReturn(expectedCount);
+
+        long result = userService.countUsers();
+
+        assertThat(result).isEqualTo(expectedCount);
+        verify(usersRepository).count();
     }
 }

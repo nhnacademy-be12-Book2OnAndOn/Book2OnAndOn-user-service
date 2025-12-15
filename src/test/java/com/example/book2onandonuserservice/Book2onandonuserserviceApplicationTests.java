@@ -15,7 +15,6 @@ import org.springframework.test.context.TestPropertySource;
         "eureka.client.enabled=false",
 
         // 2. 데이터베이스 (MySQL 대신 H2 인메모리 DB 사용)
-        // 실제 DB에 붙으면 데이터가 꼬이거나 연결 에러가 날 수 있으므로 H2를 씁니다.
         "spring.datasource.url=jdbc:h2:mem:testdb;MODE=MySQL",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
@@ -45,9 +44,9 @@ import org.springframework.test.context.TestPropertySource;
         // 8. 스케줄러 끄기
         "spring.task.scheduling.enabled=false",
 
-        "PAYCO_CLIENT_ID=test-payco-id",
-        "PAYCO_CLIENT_SECRET=test-payco-secret",
-        "PAYCO_REDIRECT_URI=http://localhost:8080/dummy"
+        "payco.client-id=test-payco-id",
+        "payco.client-secret=test-payco-secret",
+        "payco.redirect-uri=http://localhost:8080/dummy"
 
 })
 class Book2onandonuserserviceApplicationTests {

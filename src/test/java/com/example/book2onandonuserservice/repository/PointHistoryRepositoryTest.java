@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.point.repository.PointHistoryReposito
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.UserGrade;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 class PointHistoryRepositoryTest {
@@ -24,7 +26,7 @@ class PointHistoryRepositoryTest {
     static class TestEncryptionConfig {
         @Bean
         public EncryptionUtils encryptionUtils() {
-            return new EncryptionUtils("test-secret-key");
+            return new EncryptionUtils("0123456789abcdef");
         }
     }
 
@@ -43,6 +45,13 @@ class PointHistoryRepositoryTest {
         Users user = new Users();
         user.changeGrade(basicGrade);
         user.initSocialAccount("테스트유저", "test-nick");
+
+        ReflectionTestUtils.setField(user, "userLoginId", "login123");
+        ReflectionTestUtils.setField(user, "password", "pw1234");
+        ReflectionTestUtils.setField(user, "email", "test@example.com");
+        ReflectionTestUtils.setField(user, "phone", "01088889999");
+        ReflectionTestUtils.setField(user, "birth", LocalDate.of(2025, 12, 1));
+
         em.persist(user);
 
         LocalDateTime base = LocalDateTime.of(2025, 12, 1, 0, 0);
@@ -76,7 +85,7 @@ class PointHistoryRepositoryTest {
                 .pointExpiredDate(base.plusYears(1))
                 .pointReason(PointReason.ORDER)
                 .build());
-        
+
         em.flush();
 
         int sum = pointHistoryRepository.sumEarnedInPeriod(

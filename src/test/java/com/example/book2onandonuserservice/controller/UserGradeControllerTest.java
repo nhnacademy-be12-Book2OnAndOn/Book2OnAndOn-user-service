@@ -79,7 +79,7 @@ class UserGradeControllerTest {
 
         when(userGradeService.getAllGrades()).thenReturn(list);
 
-        mockMvc.perform(get("/admin/grades"))
+        mockMvc.perform(get("/grades"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].gradeName").value("BASIC"))
                 .andExpect(jsonPath("$[1].gradeName").value("GOLD"));

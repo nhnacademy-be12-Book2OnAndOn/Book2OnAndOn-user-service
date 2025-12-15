@@ -29,6 +29,9 @@ import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedExcept
 import com.example.book2onandonuserservice.user.exception.GradeNameDuplicateException;
 import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
+import com.example.book2onandonuserservice.user.exception.SameAsOldPasswordException;
+import com.example.book2onandonuserservice.user.exception.SuperAdminDeletionException;
+import com.example.book2onandonuserservice.user.exception.UserAlreadyWithdrawnException;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
@@ -49,27 +52,37 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    //400 Bad Request
+
+    /**
+     * [400] @Valid 유효성 검사 실패
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult().getAllErrors().getFirst().getDefaultMessage();
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "INVALID_INPUT",
-                errorMessage);
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_INPUT", errorMessage);
     }
 
-    //400 Bad Request
+    /**
+     * [400] Bad Request (잘못된 요청 공통 처리) - 새로 추가된 SameAsOldPasswordException 등도 여기서 일괄 처리됩니다.
+     */
     @ExceptionHandler({
-            AddressLimitExceededException.class,
-            AddressNameDuplicateException.class,
+            // User Exceptions
+            SameAsOldPasswordException.class,
+            SuperAdminDeletionException.class,
+            UserAlreadyWithdrawnException.class,
             UserLoginIdDuplicateException.class,
             UserEmailDuplicateException.class,
             UserNicknameDuplicationException.class,
             PasswordMismatchException.class,
             GradeNameDuplicateException.class,
+            UserNotDormantException.class,
+            EmailNotVerifiedException.class,
+
+            // Address Exceptions
+            AddressLimitExceededException.class,
+            AddressNameDuplicateException.class,
+
+            // Point Exceptions
             DuplicatePointPolicyException.class,
             InvalidPointPolicyException.class,
             InvalidPointRateException.class,
@@ -84,130 +97,99 @@ public class GlobalExceptionHandler {
             PointAlreadyUsedForOrderException.class,
             InsufficientPointException.class,
             InactivePointPolicyException.class,
-            UserNotDormantException.class,
+
+            // Auth/Other Exceptions
             PaycoInfoMissingException.class,
-            EmailNotVerifiedException.class,
             BadRequestException.class
     })
     public ResponseEntity<ErrorResponse> handleBadRequestExceptions(RuntimeException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "BAD_REQUEST",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        log.warn("Bad Request Exception: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
     }
 
-    //400 Bad Request - MISSING_HEADER
+    /**
+     * [400] 헤더 누락
+     */
     @ExceptionHandler(MissingRequestHeaderException.class)
-    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(
-            MissingRequestHeaderException ex
-    ) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "MISSING_HEADER",
-                "필수 요청 헤더가 누락되었습니다: " + ex.getHeaderName()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(MissingRequestHeaderException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "MISSING_HEADER",
+                "필수 요청 헤더가 누락되었습니다: " + ex.getHeaderName());
     }
 
-    //401 Unauthorized
+    /**
+     * [401] 인증 실패
+     */
     @ExceptionHandler({
             AuthenticationFailedException.class,
             InvalidAuthenticationException.class
     })
     public ResponseEntity<ErrorResponse> handleAuthenticationFailed(RuntimeException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED.value(),
-                "AUTH_FAILED",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", ex.getMessage());
     }
 
-    //403 Forbidden
+    /**
+     * [403] 권한 없음 / 휴면 / 접근 거부
+     */
     @ExceptionHandler(UserDormantException.class)
     public ResponseEntity<ErrorResponse> handleUserDormantException(UserDormantException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                "ACCOUNT_DORMANT",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACCOUNT_DORMANT", ex.getMessage());
     }
 
     @ExceptionHandler(UserWithdrawnException.class)
     public ResponseEntity<ErrorResponse> handleAccountStatusException(RuntimeException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                "ACCESS_DENIED",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", ex.getMessage());
     }
 
-    //404 Not Found
+    /**
+     * [404] 리소스 찾을 수 없음 - GradeNotFoundException도 여기서 처리됩니다.
+     */
     @ExceptionHandler({
             UserNotFoundException.class,
             AddressNotFoundException.class,
             PointPolicyNotFoundException.class,
-            GradeNotFoundException.class
+            GradeNotFoundException.class // 중복 제거 및 통합
     })
     public ResponseEntity<ErrorResponse> handlerNotFoundException(RuntimeException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                "NOT_FOUND",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        log.warn("Not Found Exception: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage());
     }
 
-    // 409 Conflict
+    /**
+     * [409] 충돌 (이미 존재함 등)
+     */
     @ExceptionHandler({
             SignupPointAlreadyGrantedException.class,
             InvalidAdminAdjustPointException.class
     })
-    public ResponseEntity<ErrorResponse> handleSignupPointAlreadyGranted(RuntimeException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                "CONFLICT",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    public ResponseEntity<ErrorResponse> handleConflictExceptions(RuntimeException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage());
     }
 
-
-    //500 Internal Server Error
-    @ExceptionHandler({Exception.class})
-    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
-        log.error("시스템 오류 발생: " + ex); //서버 로그에 로그를 남김
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "INTERNAL_SERVER_ERROR",
-                "서버 오류가 발생했습니다."
-        );
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    //502 Bad Gateway
+    /**
+     * [502] 외부 API 연동 오류
+     */
     @ExceptionHandler(PaycoServerException.class)
     public ResponseEntity<ErrorResponse> handlePaycoServerException(PaycoServerException ex) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_GATEWAY.value(),
-                "PAYCO_BAD_GATEWAY",
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_GATEWAY);
+        return buildErrorResponse(HttpStatus.BAD_GATEWAY, "PAYCO_BAD_GATEWAY", ex.getMessage());
     }
 
+    /**
+     * [500] 시스템 내부 오류
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
+        log.error("시스템 오류 발생: ", ex); // 스택트레이스 포함 로그
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.");
+    }
+
+    // Helper Method (공통 응답 생성)
+    private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String code, String message) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                code,
+                message
+        );
+        return new ResponseEntity<>(response, status);
+    }
 }

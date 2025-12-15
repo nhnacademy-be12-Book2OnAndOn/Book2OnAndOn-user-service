@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포인트 정책 관리 - Book2OnAndOn</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #4A7C59;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #4A7C59;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3d6649;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .policies-table {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #4A7C59;
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4A7C59;
+        }
+
+        .form-input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #4A7C59;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .policies-table {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>관리자 페이지</h1>
+</header>
+
+<div class="container">
+    <div class="page-header">
+        <h2 class="page-title">포인트 정책 관리</h2>
+        <button class="btn btn-primary" onclick="loadPolicies()">🔄 새로고침</button>
+    </div>
+
+    <div class="policies-table">
+        <table>
+            <thead>
+            <tr>
+                <th>정책 ID</th>
+                <th>정책명</th>
+                <th>적립 비율(%)</th>
+                <th>고정 포인트</th>
+                <th>상태</th>
+                <th>작업</th>
+            </tr>
+            </thead>
+            <tbody id="policiesTableBody">
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div>데이터를 불러오는 중...</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 수정 모달 -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">포인트 정책 수정</h3>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editForm" onsubmit="submitEdit(event)">
+            <div class="form-group">
+                <label class="form-label">정책 ID</label>
+                <input type="text" id="editPolicyId" class="form-input" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">정책명</label>
+                <input type="text" id="editPolicyName" class="form-input" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">적립 비율 (%)</label>
+                <input type="number" id="editAccrualRate" class="form-input" min="0" max="100" step="0.1">
+                <div class="form-help">0-100 사이의 값을 입력하세요</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">고정 포인트</label>
+                <input type="number" id="editAccrualPoint" class="form-input" min="0" step="1">
+                <div class="form-help">고정 지급 포인트를 입력하세요</div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">취소</button>
+                <button type="submit" class="btn btn-primary">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 활성화 상태 변경 모달 -->
+<div id="activeModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">정책 상태 변경</h3>
+            <button class="close-btn" onclick="closeActiveModal()">&times;</button>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <p><strong id="activePolicyName"></strong> 정책의 상태를 변경하시겠습니까?</p>
+        </div>
+        <div class="form-group">
+            <label class="form-label">
+                활성 상태
+                <label class="toggle-switch" style="margin-left: 10px;">
+                    <input type="checkbox" id="activeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </label>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeActiveModal()">취소</button>
+            <button type="button" class="btn btn-primary" onclick="submitActiveChange()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/admin/point-policies';
+    const userId = localStorage.getItem('userId') || '1'; // 관리자 ID
+    const USE_DUMMY = true; // 더미 데이터 사용 여부
+
+    // 더미 데이터
+    const DUMMY_POLICIES = [
+        {
+            policyId: 1,
+            policyName: 'SIGNUP',
+            accrualRate: null,
+            accrualPoint: 5000,
+            isActive: true
+        },
+        {
+            policyId: 2,
+            policyName: 'ORDER',
+            accrualRate: 1.0,
+            accrualPoint: null,
+            isActive: true
+        },
+        {
+            policyId: 3,
+            policyName: 'REVIEW',
+            accrualRate: null,
+            accrualPoint: 200,
+            isActive: true
+        },
+        {
+            policyId: 4,
+            policyName: 'REVIEW_PHOTO',
+            accrualRate: null,
+            accrualPoint: 500,
+            isActive: true
+        }
+    ];
+
+    let policies = [];
+    let currentEditingPolicy = null;
+
+    // 페이지 로드 시 정책 목록 불러오기
+    async function loadPolicies() {
+        if (USE_DUMMY) {
+            // 더미 데이터 사용
+            policies = [...DUMMY_POLICIES];
+            renderPolicies();
+            return;
+        }
+
+        // 실제 API 호출
+        try {
+            const response = await fetch(API_BASE, {
+                method: 'GET',
+                headers: {
+                    'X-USER-ID': userId
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('정책 목록을 불러오는데 실패했습니다.');
+            }
+
+            policies = await response.json();
+            renderPolicies();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('정책 목록을 불러오는데 실패했습니다.');
+            renderEmptyState('정책 목록을 불러오는데 실패했습니다.');
+        }
+    }
+
+    // 정책 목록 렌더링
+    function renderPolicies() {
+        const tbody = document.getElementById('policiesTableBody');
+
+        if (policies.length === 0) {
+            renderEmptyState('등록된 정책이 없습니다.');
+            return;
+        }
+
+        tbody.innerHTML = policies.map(policy => `
+                <tr>
+                    <td>${policy.policyId}</td>
+                    <td><strong>${policy.policyName}</strong></td>
+                    <td>${policy.accrualRate !== null ? policy.accrualRate + '%' : '-'}</td>
+                    <td>${policy.accrualPoint !== null ? policy.accrualPoint.toLocaleString() + 'P' : '-'}</td>
+                    <td>
+                        <span class="status-badge ${policy.isActive ? 'status-active' : 'status-inactive'}">
+                            ${policy.isActive ? '활성' : '비활성'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-small" onclick="openEditModal(${policy.policyId})">
+                                수정
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="openActiveModal(${policy.policyId})">
+                                ${policy.isActive ? '비활성화' : '활성화'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+    }
+
+    // 빈 상태 렌더링
+    function renderEmptyState(message) {
+        const tbody = document.getElementById('policiesTableBody');
+        tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div>${message}</div>
+                    </td>
+                </tr>
+            `;
+    }
+
+    // 수정 모달 열기
+    function openEditModal(policyId) {
+        const policy = policies.find(p => p.policyId === policyId);
+        if (!policy) return;
+
+        currentEditingPolicy = policy;
+
+        document.getElementById('editPolicyId').value = policy.policyId;
+        document.getElementById('editPolicyName').value = policy.policyName;
+        document.getElementById('editAccrualRate').value = policy.accrualRate || 0;
+        document.getElementById('editAccrualPoint').value = policy.accrualPoint || 0;
+
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    // 수정 모달 닫기
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+        currentEditingPolicy = null;
+    }
+
+    // 수정 제출
+    async function submitEdit(event) {
+        event.preventDefault();
+
+        if (!currentEditingPolicy) return;
+
+        const accrualRate = parseFloat(document.getElementById('editAccrualRate').value);
+        const accrualPoint = parseInt(document.getElementById('editAccrualPoint').value);
+
+        if (accrualRate < 0 || accrualRate > 100) {
+            alert('적립 비율은 0-100 사이의 값이어야 합니다.');
+            return;
+        }
+
+        if (accrualPoint < 0) {
+            alert('고정 포인트는 0 이상이어야 합니다.');
+            return;
+        }
+
+        if (USE_DUMMY) {
+            // 더미 데이터 업데이트
+            const policyIndex = policies.findIndex(p => p.policyId === currentEditingPolicy.policyId);
+            if (policyIndex !== -1) {
+                policies[policyIndex].accrualRate = accrualRate || null;
+                policies[policyIndex].accrualPoint = accrualPoint || null;
+            }
+            alert('정책이 성공적으로 수정되었습니다.');
+            closeEditModal();
+            renderPolicies();
+            return;
+        }
+
+        // 실제 API 호출
+        try {
+            const response = await fetch(`${API_BASE}/${currentEditingPolicy.policyId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-USER-ID': userId
+                },
+                body: JSON.stringify({
+                    accrualRate: accrualRate,
+                    accrualPoint: accrualPoint
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('정책 수정에 실패했습니다.');
+            }
+
+            alert('정책이 성공적으로 수정되었습니다.');
+            closeEditModal();
+            loadPolicies();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('정책 수정에 실패했습니다.');
+        }
+    }
+
+    // 활성화 상태 변경 모달 열기
+    function openActiveModal(policyId) {
+        const policy = policies.find(p => p.policyId === policyId);
+        if (!policy) return;
+
+        currentEditingPolicy = policy;
+
+        document.getElementById('activePolicyName').textContent = policy.policyName;
+        document.getElementById('activeToggle').checked = policy.isActive;
+
+        document.getElementById('activeModal').classList.add('active');
+    }
+
+    // 활성화 상태 변경 모달 닫기
+    function closeActiveModal() {
+        document.getElementById('activeModal').classList.remove('active');
+        currentEditingPolicy = null;
+    }
+
+    // 활성화 상태 변경 제출
+    async function submitActiveChange() {
+        if (!currentEditingPolicy) return;
+
+        const isActive = document.getElementById('activeToggle').checked;
+
+        if (USE_DUMMY) {
+            // 더미 데이터 업데이트
+            const policyIndex = policies.findIndex(p => p.policyId === currentEditingPolicy.policyId);
+            if (policyIndex !== -1) {
+                policies[policyIndex].isActive = isActive;
+            }
+            alert('정책 상태가 성공적으로 변경되었습니다.');
+            closeActiveModal();
+            renderPolicies();
+            return;
+        }
+
+        // 실제 API 호출
+        try {
+            const response = await fetch(`${API_BASE}/${currentEditingPolicy.policyId}/active`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-USER-ID': userId
+                },
+                body: JSON.stringify({
+                    isActive: isActive
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('정책 상태 변경에 실패했습니다.');
+            }
+
+            alert('정책 상태가 성공적으로 변경되었습니다.');
+            closeActiveModal();
+            loadPolicies();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('정책 상태 변경에 실패했습니다.');
+        }
+    }
+
+    // 모달 외부 클릭 시 닫기
+    window.onclick = function (event) {
+        const editModal = document.getElementById('editModal');
+        const activeModal = document.getElementById('activeModal');
+
+        if (event.target === editModal) {
+            closeEditModal();
+        }
+        if (event.target === activeModal) {
+            closeActiveModal();
+        }
+    }
+
+    // 페이지 로드 시 실행
+    loadPolicies();
+</script>
+</body>
+</html>

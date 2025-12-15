@@ -2,6 +2,8 @@ package com.example.book2onandonuserservice.user.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,6 +25,7 @@ public class UserGrade {
     @Column(name = "user_grade_id")
     private Long gradeId;
 
+    @Enumerated(EnumType.STRING)
     @NotNull
     @Column(name = "user_grade_name", unique = true, length = 20)
     private GradeName gradeName;

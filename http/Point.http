@@ -114,11 +114,6 @@ X-USER-ID: {{userId}}
 }
 
 
-### 2-8. 포인트 만료 처리 (해당 유저 만료 즉시 반영)
-POST {{host}}/users/me/points/expire?userId={{userId}}
-X-USER-ID: {{adminId}}
-
-
 ########################################################
 # 3. ADMIN POINT HISTORY API (관리자 조회 / 조정)
 ########################################################
@@ -144,3 +139,6 @@ X-USER-ID: {{adminId}}
   "memo": "고객센터 보상 지급 테스트"
 }
 
+### 3-4. (관리자) 포인트 만료 처리 (해당 유저 만료 즉시 반영)
+POST {{host}}/admin/points/expire?userId={{userId}}
+X-USER-ID: {{adminId}}

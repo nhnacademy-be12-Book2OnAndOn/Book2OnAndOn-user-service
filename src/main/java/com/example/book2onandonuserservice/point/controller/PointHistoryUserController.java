@@ -6,7 +6,9 @@ import com.example.book2onandonuserservice.point.domain.dto.request.RefundPointR
 import com.example.book2onandonuserservice.point.domain.dto.request.UsePointRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.ExpiringPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
+import com.example.book2onandonuserservice.point.domain.dto.response.PointSummaryResponseDto;
 import com.example.book2onandonuserservice.point.exception.UserIdMismatchException;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,90 +32,132 @@ public class PointHistoryUserController {
 
     private final PointHistoryService pointHistoryService;
 
-    private static final String USER_ID_HEADER = "X-USER-ID";
+    private static final String USER_ID_HEADER = "X-User-Id";
 
     // 1. 포인트 전체 내역 조회 (마이페이지)
-    // GET /users/me/points?userId=1
+    // GET /users/me/points
     @GetMapping
-    public Page<PointHistoryResponseDto> getMyPointHistory(
+    public ResponseEntity<Page<PointHistoryResponseDto>> getMyPointHistory(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @PageableDefault(page = 0, size = 10) Pageable pageable
     ) {
-        return pointHistoryService.getMyPointHistory(userId, pageable);
+        Page<PointHistoryResponseDto> pointHistory = pointHistoryService.getMyPointHistory(userId, pageable);
+        return ResponseEntity.ok(pointHistory);
+    }
+
+    // 1-1. 포인트 내역 조회 (적립/사용)
+    // GET /users/me/points?type=EARN
+    // GET /users/me/points?type=USE
+    @GetMapping(params = "type")
+    public ResponseEntity<Page<PointHistoryResponseDto>> getMyPointHistoryByType(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestParam("type") String type,
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ) {
+        Page<PointHistoryResponseDto> pointHistory =
+                pointHistoryService.getMyPointHistoryByType(userId, type, pageable);
+
+        return ResponseEntity.ok(pointHistory);
     }
 
     // 2. 현재 포인트 조회 (숫자만)
-    // GET /users/me/points/current?userId=1
+    // GET /users/me/points/current
     @GetMapping("/current")
-    public CurrentPointResponseDto getMyCurrentPoint(@RequestHeader(USER_ID_HEADER) Long userId) {
-        return pointHistoryService.getMyCurrentPoint(userId);
+    public ResponseEntity<CurrentPointResponseDto> getMyCurrentPoint(
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
+        CurrentPointResponseDto currentPoint = pointHistoryService.getMyCurrentPoint(userId);
+        return ResponseEntity.ok(currentPoint);
     }
 
     // 3-1. 회원가입 적립
-    // POST /users/me/points/earn/signup?userId=1
+    // POST /users/me/points/earn/signup
     @PostMapping("/earn/signup")
-    public EarnPointResponseDto earnSignupPoint(@RequestHeader(USER_ID_HEADER) Long userId) {
-        return pointHistoryService.earnSignupPoint(userId);
+    public ResponseEntity<EarnPointResponseDto> earnSignupPoint(
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
+        EarnPointResponseDto earnPoint = pointHistoryService.earnSignupPoint(userId);
+        return ResponseEntity.ok(earnPoint);
     }
 
     // 3-2. 리뷰 작성 적립 (일반/사진)
     // POST /users/me/points/earn/review
     @PostMapping("/earn/review")
-    public EarnPointResponseDto earnReviewPoint(
+    public ResponseEntity<EarnPointResponseDto> earnReviewPoint(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody EarnReviewPointRequestDto dto
     ) {
-        // "me" 보장: Body 안에 userId가 있다면 헤더와 일치하는지 검증
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
             throw new UserIdMismatchException(userId);
         }
-        return pointHistoryService.earnReviewPoint(dto);
+        dto.setUserId(userId);
+        EarnPointResponseDto earnPoint = pointHistoryService.earnReviewPoint(dto);
+        return ResponseEntity.ok(earnPoint);
     }
 
     // 3-3. 도서 결제 적립 (적립률)
     // POST /users/me/points/earn/order
     @PostMapping("/earn/order")
-    public EarnPointResponseDto earnOrderPoint(
+    public ResponseEntity<EarnPointResponseDto> earnOrderPoint(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody EarnOrderPointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
-        return pointHistoryService.earnOrderPoint(dto);
+        dto.setUserId(userId);
+        EarnPointResponseDto earnPoint = pointHistoryService.earnOrderPoint(dto);
+        return ResponseEntity.ok(earnPoint);
     }
 
     // 4. 포인트 사용
     // POST /users/me/points/use
     @PostMapping("/use")
-    public EarnPointResponseDto usePoint(
+    public ResponseEntity<EarnPointResponseDto> usePoint(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody UsePointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
-        return pointHistoryService.usePoint(dto);
+        dto.setUserId(userId);
+        EarnPointResponseDto earnPoint = pointHistoryService.usePoint(dto);
+        return ResponseEntity.ok(earnPoint);
     }
 
     // 5. 포인트 반환 (결제취소/반품)
     // POST /users/me/points/refund
     @PostMapping("/refund")
-    public EarnPointResponseDto refundPoint(
+    public ResponseEntity<EarnPointResponseDto> refundPoint(
             @RequestHeader(USER_ID_HEADER) Long userId,
             @Valid @RequestBody RefundPointRequestDto dto
     ) {
         if (dto.getUserId() != null && !dto.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("요청 userId와 인증된 사용자가 일치하지 않습니다.");
+            throw new UserIdMismatchException(userId);
         }
-        return pointHistoryService.refundPoint(dto);
+        dto.setUserId(userId);
+        EarnPointResponseDto earnPoint = pointHistoryService.refundPoint(dto);
+        return ResponseEntity.ok(earnPoint);
     }
 
-    // 6. 포인트 만료 처리 (해당 유저에 대해 만료일자가 지난 포인트들을 즉시 만료 처리)
-    // POST /users/me/points/expire?userId=1
-    @PostMapping("/expire")
-    public ResponseEntity<Void> expirePoints(@RequestHeader(USER_ID_HEADER) Long userId) {
-        pointHistoryService.expirePoints(userId);
-        return ResponseEntity.ok().build();
+    // 6. 7일 내 소멸 예정 포인트 조회
+    // GET /users/me/points/expiring?days=7
+    @GetMapping("/expiring")
+    public ResponseEntity<ExpiringPointResponseDto> getExpiringPoints(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @RequestParam(defaultValue = "7") int days
+    ) {
+        ExpiringPointResponseDto expiringPoints = pointHistoryService.getExpiringPoints(userId, days);
+        return ResponseEntity.ok().body(expiringPoints);
     }
+
+    // 7. 포인트 내역 요약 (프론트)
+    @GetMapping("/summary")
+    public ResponseEntity<PointSummaryResponseDto> getSummary(
+            @RequestHeader(USER_ID_HEADER) Long userId
+    ) {
+        PointSummaryResponseDto dto = pointHistoryService.getMyPointSummary(userId);
+        return ResponseEntity.ok(dto);
+    }
+
 }

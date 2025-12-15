@@ -22,6 +22,26 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Cache SonarQube packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build and Analyze with SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST_URL }}
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=Book2onandon-user-service \
+            -Dsonar.projectName="Book2onandon-user-service" \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dspring.cloud.config.enabled=false \
+
       - name: Build with Maven
         run: |
           chmod +x mvnw
@@ -43,6 +63,7 @@ jobs:
           push: true
           tags: ghcr.io/nhnacademy-be12-book2onandon/user-service:v1
 
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -52,10 +73,10 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd /home/backend/be12-team2
-            
+
             SERVICE_NAME="USER-SERVICE"
             EUREKA_URL="http://admin:admin1234@localhost:10437/eureka"
-            
+
             docker compose pull user-1 user-2
 
             # [1] user-1 배포
@@ -75,3 +96,4 @@ jobs:
             curl -X PUT "$EUREKA_URL/apps/$SERVICE_NAME/$INSTANCE_ID_2/status?value=UP" || true
 
             docker image prune -f
+

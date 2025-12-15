@@ -26,7 +26,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "PointHistory")
+@Table(name = "point_history")
 public class PointHistory {
 
     @Id
@@ -61,8 +61,8 @@ public class PointHistory {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
-    @Column(name = "order_item_id")
-    private Long orderItemId;
+    @Column(name = "order_id")
+    private Long orderId;
 
     @Column(name = "return_id")
     private Long returnId;

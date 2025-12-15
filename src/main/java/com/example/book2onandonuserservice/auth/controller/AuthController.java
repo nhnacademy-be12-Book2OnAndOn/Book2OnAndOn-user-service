@@ -1,18 +1,25 @@
 package com.example.book2onandonuserservice.auth.controller;
 
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoLoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
+import com.example.book2onandonuserservice.global.config.RabbitConfig;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -20,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final RabbitTemplate rabbitTemplate;
 
     //로컬 회원가입
     //POST /auth/signup
@@ -28,6 +36,12 @@ public class AuthController {
             @Valid @RequestBody LocalSignUpRequestDto request
     ) {
         UserResponseDto response = authService.signUp(request);
+
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.ROUTING_KEY_WELCOME,
+                response.userId()
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -49,4 +63,61 @@ public class AuthController {
         TokenResponseDto tokenResponse = authService.loginWithPayco(request);
         return ResponseEntity.ok(tokenResponse);
     }
+
+    //로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String accessToken) {
+        if (accessToken != null && accessToken.startsWith("Bearer ")) {
+            String token = accessToken.substring(7);
+            authService.logout(token);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    //아이디찾기
+    @PostMapping("/find-id")
+    public ResponseEntity<FindIdResponseDto> findMemberIdByNameAndEmail(@Valid @RequestBody FindIdRequestDto request) {
+        FindIdResponseDto response = authService.findMemberIdByNameAndEmail(request);
+        return ResponseEntity.ok(response);
+    }
+
+    //비밀번호 찾기(임시 비밀번호 발급)
+    @PostMapping("/find-password")
+    public ResponseEntity<Void> findPassword(@Valid @RequestBody FindPasswordRequestDto request) {
+        authService.issueTemporaryPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    //이메일 인증 요청
+    @PostMapping("/email/send")
+    public ResponseEntity<Void> sendEmailVerification(@RequestParam String email) {
+        authService.sendVerificationCode(email);
+        return ResponseEntity.ok().build();
+    }
+
+    //인증번호 확인
+    @PostMapping("/email/verify")
+    public ResponseEntity<String> verifyEmail(@RequestParam String email, @RequestParam String code) {
+        boolean isVerified = authService.verifyEmail(email, code);
+        if (isVerified) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 실패");
+        }
+    }
+
+    //휴면 해제 인증번호 발송
+    @PostMapping("/dormant/email/send")
+    public ResponseEntity<Void> sendDormanetVerification(@RequestParam String email) {
+        authService.sendDormantVerificationCode(email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/dormant/unlock")
+    public ResponseEntity<String> unlockDormantAccount(@RequestParam String email, @RequestParam String code) {
+        authService.unlockDormantAccount(email, code);
+        return ResponseEntity.ok("휴면 상태가 해제되었습니다.");
+    }
+
+
 }

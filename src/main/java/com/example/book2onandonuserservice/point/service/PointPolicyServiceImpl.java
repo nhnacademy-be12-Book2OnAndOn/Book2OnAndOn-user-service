@@ -6,7 +6,7 @@ import com.example.book2onandonuserservice.point.domain.dto.response.PointPolicy
 import com.example.book2onandonuserservice.point.domain.entity.PointPolicy;
 import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundException;
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
-import com.example.book2onandonuserservice.point.support.pointPolicy.PointPolicyValidator;
+import com.example.book2onandonuserservice.point.support.pointpolicy.PointPolicyValidator;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -41,22 +41,16 @@ public class PointPolicyServiceImpl implements PointPolicyService {
 
     // 3. 정책 비율/포인트 수정
     @Override
-    public PointPolicyResponseDto updatePolicyRateAndPoint(Integer policyId, PointPolicyUpdateRequestDto dto) {
+    public PointPolicyResponseDto updatePolicyPoint(Integer policyId, PointPolicyUpdateRequestDto dto) {
         PointPolicy policy = pointPolicyRepository.findById(policyId)
                 .orElseThrow(() -> new PointPolicyNotFoundException(policyId));
 
-        pointPolicyValidator.validateRateAndPoint(dto.getPointAddRate(), dto.getPointAddPoint());
+        pointPolicyValidator.validatePoint(dto.getPointAddPoint());
 
-        if (dto.getPointAddRate() != null) {
-            policy.setPolicyAddRate(dto.getPointAddRate());
-            policy.setPolicyAddPoint(null);
-        }
-        if (dto.getPointAddPoint() != null) {
-            policy.setPolicyAddRate(null);
-            policy.setPolicyAddPoint(dto.getPointAddPoint());
-        }
+        policy.setPolicyAddPoint(dto.getPointAddPoint());
         return PointPolicyResponseDto.toDto(policy);
     }
+
 
     // 4. 정책 활성/비활성
     @Override
@@ -65,7 +59,6 @@ public class PointPolicyServiceImpl implements PointPolicyService {
                 .orElseThrow(() -> new PointPolicyNotFoundException(policyId));
 
         policy.setPolicyIsActive(dto.getIsActive());
-        // 필요하면, 최소 1개 기본 정책은 항상 활성이어야 한다. 같은 추가 검증 넣기
         return PointPolicyResponseDto.toDto(policy);
     }
 

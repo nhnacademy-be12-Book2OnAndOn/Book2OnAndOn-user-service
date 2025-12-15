@@ -27,9 +27,6 @@ public class EncryptStringConverter implements AttributeConverter<String, String
     // 복호화
     @Override
     public String convertToEntityAttribute(String dbData) {
-        if (!StringUtils.hasText(dbData)) {
-            return null;
-        }
         try {
             return encryptionUtils.decrypt(dbData);
         } catch (Exception e) {

@@ -1,34 +1,41 @@
 package com.example.book2onandonuserservice.auth.service.impl;
 
 import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoLoginRequestDto;
-import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoMemberResponse;
-import com.example.book2onandonuserservice.auth.domain.dto.payco.PaycoTokenResponse;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
-import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
-import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
 import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthService;
-import com.example.book2onandonuserservice.global.client.PaycoClient;
+import com.example.book2onandonuserservice.auth.service.AuthTokenService;
+import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
+import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
+import com.example.book2onandonuserservice.global.event.EmailSendEvent;
+import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
+import com.example.book2onandonuserservice.global.util.RedisUtil;
+import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
 import com.example.book2onandonuserservice.user.domain.entity.UserGrade;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedException;
 import com.example.book2onandonuserservice.user.exception.UserDormantException;
 import com.example.book2onandonuserservice.user.exception.UserEmailDuplicateException;
 import com.example.book2onandonuserservice.user.exception.UserLoginIdDuplicateException;
+import com.example.book2onandonuserservice.user.exception.UserNicknameDuplicationException;
+import com.example.book2onandonuserservice.user.exception.UserNotFoundException;
 import com.example.book2onandonuserservice.user.exception.UserWithdrawnException;
 import com.example.book2onandonuserservice.user.repository.UserGradeRepository;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
-import java.net.URI;
-import java.time.LocalDate;
-import java.util.Optional;
+import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,74 +43,116 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AuthServiceImpl implements AuthService {
+
+    private final AuthTokenService authTokenService;       // 토큰 발급/관리
+    private final AuthVerificationService verificationService; // 이메일/휴면 인증
+    private final PaycoAuthService paycoAuthService;       // PAYCO 로그인
+
     private final UsersRepository usersRepository;
     private final UserAuthRepository userAuthRepository;
     private final UserGradeRepository userGradeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final PaycoClient paycoClient;
-
-    @Value("${payco.client-id}")
-    private String paycoClientId;
-
-    @Value("${payco.client-secret}")
-    private String paycoClientSecret;
+    private final PointHistoryService pointHistoryService;
+    private final RedisUtil redisUtil;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String LOCAL_PROVIDER = "local";
-    private static final String PAYCO_PROVIDER = "payco";
+    private static final SecureRandom secureRandom = new SecureRandom();
 
-    //로그인 상태 체크 및 마지막 접속일 갱신
-    private Users processLogin(Users user) {
-        if (user.getStatus() == Status.DORMANT) {
-            throw new UserDormantException();
-        }
-        if (user.getStatus() == Status.CLOSED) {
-            throw new UserWithdrawnException();
-        }
-        user.updateLastLogin();
-        return user;
+
+    // 위임 메서드
+    @Override
+    public void sendVerificationCode(String email) {
+        verificationService.sendVerificationCode(email);
     }
 
-    //토큰 생성
-    private TokenResponseDto issueToken(Users user) {
-        TokenRequestDto tokenRequest = new TokenRequestDto(user.getUserId(), user.getRole().name());
-        return jwtTokenProvider.createTokens(tokenRequest);
+    @Override
+    public void sendDormantVerificationCode(String email) {
+        verificationService.sendDormantVerificationCode(email);
     }
 
-    //기본 등급 조회
-    private UserGrade getDefaultGrade() {
-        String basicGrade = GradeName.BASIC.name();
-        return userGradeRepository.findByGradeName(GradeName.BASIC)
-                .orElseThrow(() -> new RuntimeException(basicGrade + "가 DB에 없습니다."));
+    @Override
+    public boolean verifyEmail(String email, String code) {
+        return verificationService.verifyEmail(email, code);
     }
 
-    //로컬 회원가입
     @Override
     @Transactional
+    public void unlockDormantAccount(String email, String code) {
+        verificationService.unlockDormantAccount(email, code);
+    }
+
+    @Override
+    @Transactional
+    public TokenResponseDto loginWithPayco(PaycoLoginRequestDto request) {
+        return paycoAuthService.login(request);
+    }
+
+    @Override
+    public void logout(String accessToken) {
+        authTokenService.logout(accessToken);
+    }
+
+    // 로컬 인증 로직
+
+    // 로컬 회원가입
+    @Transactional
+    @Override
     public UserResponseDto signUp(LocalSignUpRequestDto request) {
+        String cleanEmail = request.email().trim();
+
         if (usersRepository.existsByUserLoginId(request.userLoginId())) {
             throw new UserLoginIdDuplicateException();
         }
-        if (usersRepository.findByEmail(request.email()).isPresent()) {
+        if (usersRepository.existsByNickname(request.nickname())) {
+            throw new UserNicknameDuplicationException(); // "이미 사용중인 닉네임 입니다." 메시지 포함됨
+        }
+        if (usersRepository.findByEmail(cleanEmail).isPresent()) {
             throw new UserEmailDuplicateException();
         }
 
-        UserGrade defaultGrade = getDefaultGrade();
-        String encodePassword = passwordEncoder.encode(request.password());
+        String verifiedKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey(cleanEmail);
+        String isVerified = redisUtil.getData(verifiedKey);
 
-        Users newUser = new Users(
+        if (!"true".equals(isVerified)) {
+            throw new EmailNotVerifiedException();
+        }
+        redisUtil.deleteData(verifiedKey);
+
+        // 등급 조회 및 비밀번호 암호화
+        UserGrade defaultGrade = getDefaultGrade();
+        String encodedPassword = passwordEncoder.encode(request.password());
+
+        // 유저 저장
+        Users newUser = new Users();
+
+        newUser.initLocalAccount(
                 request.userLoginId(),
-                encodePassword,
+                encodedPassword,
                 request.name(),
+                request.nickname()
+        );
+
+        newUser.setContactInfo(
                 request.email(),
                 request.phone(),
-                request.birth(),
-                defaultGrade
+                request.birth()
         );
+
+        newUser.changeGrade(defaultGrade);
+
         Users savedUser = usersRepository.save(newUser);
 
-        //인증정보 저장
+        // 회원가입 포인트 적립
+        try {
+            pointHistoryService.earnSignupPoint(savedUser.getUserId());
+            log.info("로컬 회원가입 포인트 적립 완료: userId={}", savedUser.getUserId());
+        } catch (Exception e) {
+            log.warn("로컬 회원가입 포인트 적립 실패: {}", e.getMessage());
+        }
+        // 인증 정보 저장
         UserAuth localAuth = UserAuth.builder()
                 .provider(LOCAL_PROVIDER)
                 .providerUserId(savedUser.getUserLoginId())
@@ -114,114 +163,101 @@ public class AuthServiceImpl implements AuthService {
         return UserResponseDto.fromEntity(savedUser);
     }
 
+    // 로컬 로그인
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto request) {
-        //인증 정보 조회
+        // 인증 정보 조회
         UserAuth userAuth = userAuthRepository.findByProviderAndProviderUserId(LOCAL_PROVIDER, request.userId())
                 .orElseThrow(AuthenticationFailedException::new);
 
         Users user = userAuth.getUser();
-        //비밀번호 검증
+
+        // 비밀번호 검증
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new AuthenticationFailedException();
         }
 
-        //로그인 처리 및 토큰 발급
-        Users loginUser = processLogin(user);
-        return issueToken(loginUser);
+        // 상태 체크 및 로그인 처리
+        processLogin(user);
+
+        // 토큰 발급 (AuthTokenService 위임)
+        return authTokenService.issueToken(user);
     }
 
+    // 아이디 찾기
+    @Override
+    public FindIdResponseDto findMemberIdByNameAndEmail(FindIdRequestDto request) {
+        Users user = usersRepository.findByNameAndEmail(request.name(), request.email())
+                .orElseThrow(() -> new UserNotFoundException("입력하신 정보와 일치하는 회원이 없습니다."));
+
+        String maskedId = maskUserId(user.getUserLoginId());
+        return new FindIdResponseDto(maskedId);
+    }
+
+    // 임시 비밀번호 발급
     @Override
     @Transactional
-    public TokenResponseDto loginWithPayco(PaycoLoginRequestDto request) {
-        //Payco Access Token 발급
-        PaycoTokenResponse tokenResponse = paycoClient.getToken(
-                "authorization_code",
-                paycoClientId,
-                paycoClientSecret,
-                request.code()
-        );
+    public void issueTemporaryPassword(FindPasswordRequestDto request) {
+        Users user = usersRepository.findByUserLoginIdAndEmail(request.userLoginId(), request.email())
+                .orElseThrow(() -> new UserNotFoundException("입력하신 정보와 일치하는 회원이 없습니다."));
 
-        //Payco 회원 정보 조회
-        URI userInfoUri = URI.create("https://apis-payco.krp.toastoven.net/payco/friends/find_member_v2.json");
+        String tempPassword = generateTempPassword();
+        String encodedTempPassword = passwordEncoder.encode(tempPassword);
 
-        PaycoMemberResponse memberResponse = paycoClient.getMemberInfo(
-                userInfoUri,
-                paycoClientId,
-                tokenResponse.accessToken()
-        );
+        user.changePassword(encodedTempPassword);
 
-        if (!memberResponse.getHeader().isSuccessful()) {
-            throw new RuntimeException("PAYCO 로그인 실패: " + memberResponse.getHeader().getResultMessage());
+        // 이메일 발송 이벤트 발행 (비동기)
+        String subject = "[Book2OnAndOn] 임시비밀번호 안내";
+        String text = "회원님의 임시 비밀번호는 <b>" + tempPassword + "</b> 입니다.<br>" +
+                "로그인 후 반드시 비밀번호를 변경해 주세요.";
+
+        eventPublisher.publishEvent(new EmailSendEvent(user.getEmail(), subject, text));
+    }
+
+
+    // 헬퍼 메서드
+    private void processLogin(Users user) {
+        if (user.getStatus() == Status.DORMANT) {
+            throw new UserDormantException();
         }
+        if (user.getStatus() == Status.CLOSED) {
+            throw new UserWithdrawnException();
+        }
+        user.updateLastLogin();
+    }
 
-        //Payco 회원정보 추출
-        PaycoMemberResponse.PaycoMember paycoInfo = memberResponse.getData().getMember();
-        String providerId = paycoInfo.getIdNo();
-        String email = paycoInfo.getEmail();
-        String name = paycoInfo.getName();
-        String phone = parsePhoneNumber(paycoInfo.getMobile());
-        LocalDate birth = parseBirthday(paycoInfo.getBirthday());
+    private UserGrade getDefaultGrade() {
+        return userGradeRepository.findByGradeName(GradeName.BASIC)
+                .orElseThrow(() -> new IllegalStateException("데이터베이스에 기본 회원 등급(BASIC)이 존재하지 않습니다. 관리자에게 문의하세요."));
+    }
 
-        //가입여부 확인 및 처리
-        Optional<UserAuth> userAuthOpt = userAuthRepository.findByProviderAndProviderUserId(
-                PAYCO_PROVIDER, providerId);
+    private String maskUserId(String userLoginId) {
+        if (userLoginId == null || userLoginId.isBlank()) {
+            return "";
+        }
+        int length = userLoginId.length();
+        if (length <= 2) {
+            return userLoginId;
+        }
+        return userLoginId.substring(0, length - 2) + "**";
+    }
 
-        Users user;
-        if (userAuthOpt.isPresent()) {
-            user = userAuthOpt.get().getUser();
-            user = processLogin(user);
+    private String generateTempPassword() {
+        String specialCharsStr = "@$!%*#?&";
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$!%*#?&";
 
-        } else {
-            Optional<Users> userOptByEmail = usersRepository.findByEmail(email);
-
-            if (userOptByEmail.isPresent()) {
-                user = userOptByEmail.get();
-                user = processLogin(user);
-            } else {
-                UserGrade defaultGrade = getDefaultGrade();
-                user = new Users(
-                        name,
-                        email,
-                        phone,
-                        birth,
-                        defaultGrade
-                );
-                usersRepository.save(user);
+        while (true) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++) {
+                sb.append(chars.charAt(secureRandom.nextInt(chars.length())));
             }
-
-            UserAuth newAuth = UserAuth.builder()
-                    .provider(PAYCO_PROVIDER)
-                    .providerUserId(providerId)
-                    .user(user)
-                    .build();
-            userAuthRepository.save(newAuth);
+            String pwd = sb.toString();
+            if (pwd.chars().anyMatch(Character::isLetter) &&
+                    pwd.chars().anyMatch(Character::isDigit) &&
+                    pwd.chars().anyMatch(ch -> specialCharsStr.indexOf(ch) >= 0)) {
+                return pwd;
+            }
         }
-
-        return issueToken(user);
-    }
-
-    //Payco 전화번호 파싱
-    private String parsePhoneNumber(String paycoMobile) {
-        if (paycoMobile == null) {
-            return null;
-        }
-
-        //- 제거하고 숫자만 남기기
-        String cleanNumber = paycoMobile.replaceAll("[^0-9]", "");
-        //82(국제번호)로 시작하면 0으로 변경
-        if (cleanNumber.startsWith("82")) {
-            return "0" + cleanNumber.substring(2);
-        }
-        return cleanNumber;
-    }
-
-    //payco 생일 파싱
-    private LocalDate parseBirthday(String paycoBirthday) {
-        if (paycoBirthday == null || paycoBirthday.length() != 8) {
-            return null;
-        }
-        return LocalDate.parse(paycoBirthday, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
     }
 }

@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.user.domain.entity;
 
+import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -11,11 +12,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,43 +32,42 @@ import lombok.NoArgsConstructor;
 public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "user_password", length = 255)
+    @Column(name = "user_password", length = 255, nullable = false)
     private String password;
 
-    @Column(name = "user_login_id", unique = true, length = 30)
+    @Column(name = "user_login_id", unique = true, length = 30, nullable = false)
     private String userLoginId;
 
-    @Column(name = "user_name", length = 50)
+    @Column(name = "user_name", length = 50, nullable = false)
     @Size(max = 50)
     private String name;
 
-    @Column(name = "user_email", unique = true, length = 500)
-    @Convert(converter = EncryptStringConverter.class)
+    @Column(name = "user_email", unique = true, length = 500, nullable = false)
     private String email;
 
-    @Column(name = "user_phone", length = 255)
+    @Column(name = "user_phone", length = 255, nullable = false)
     @Convert(converter = EncryptStringConverter.class)
     private String phone;
 
-    @Column(name = "user_birth")
+    @Column(name = "user_birth", nullable = false)
     private LocalDate birth;
 
-    @Column(name = "user_created_at")
+    @Column(name = "user_created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "user_latest_login")
+    @Column(name = "user_latest_login", nullable = false)
     private LocalDateTime lastLoginAt;
 
     @NotNull
-    @Column(name = "user_role")
+    @Column(name = "user_role", nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
 
     @NotNull
-    @Column(name = "user_status")
+    @Column(name = "user_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -76,37 +79,41 @@ public class Users {
 
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "user_grade_id")
+    @JoinColumn(name = "user_grade_id", nullable = false)
     private UserGrade userGrade;
 
+    @Column(name = "withdraw_reason")
+    private String withdrawReason;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserAuth> userAuths = new ArrayList<>();
+
     //생성자
-    private void initCommonFields(UserGrade userGrade, String name, String email, String phone, LocalDate birth) {
-        this.nickname = name;
+    private void initDefaults(String name, String nickname) {
+        this.name = name;
+        this.nickname = nickname;
         this.createdAt = LocalDateTime.now();
         this.lastLoginAt = LocalDateTime.now();
         this.role = Role.USER;
         this.status = Status.ACTIVE;
-        this.userGrade = userGrade;
-        this.name = name;
+    }
+
+    public void initLocalAccount(String userLoginId, String password, String name, String nickname) {
+        this.userLoginId = userLoginId;
+        this.password = password;
+        initDefaults(name, nickname);
+    }
+
+    public void initSocialAccount(String name, String nickname) {
+        initDefaults(name, nickname);
+    }
+
+    public void setContactInfo(String email, String phone, LocalDate birth) {
         this.email = email;
         this.phone = phone;
         this.birth = birth;
     }
 
-    public Users(String userLoginId, String password, String name, String email, String phone, LocalDate birth,
-                 UserGrade userGrade) {
-        this.userLoginId = userLoginId;
-        this.password = password;
-        initCommonFields(userGrade, name, email, phone, birth);
-    }
-
-    public Users(String name, String email, String phone, LocalDate birth, UserGrade userGrade) {
-        this.userLoginId = null;
-        this.password = null;
-        initCommonFields(userGrade, name, email, phone, birth);
-    }
-
-    //비즈니스 로직 더티체킹
     //프로필 정보 수정
     public void updateProfile(String name, String email, String nickname, String phone) {
         this.name = name;
@@ -126,13 +133,13 @@ public class Users {
     }
 
     //회원 탈퇴
-    public void withDraw() {
+    public void withDraw(String reason) {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
-        this.email = "withdrawn_" + this.userId + "@deleted.com"; //Unique 제약조건을 피하기 위함
+        this.email = "withdrawn_" + this.userId + "@deleted.com";
         this.phone = null;
-        this.email = null;
+        this.withdrawReason = reason;
     }
 
     //등급 변경
@@ -140,5 +147,11 @@ public class Users {
         this.userGrade = userGrade;
     }
 
+    public void changeRole(Role newRole) {
+        this.role = newRole;
+    }
 
+    public void changeStatus(Status newStatus) {
+        this.status = newStatus;
+    }
 }

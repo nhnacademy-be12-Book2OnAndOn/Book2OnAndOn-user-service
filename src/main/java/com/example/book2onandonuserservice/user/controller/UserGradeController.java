@@ -18,27 +18,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/grades")
+@RequestMapping
 @RequiredArgsConstructor
 public class UserGradeController {
     private final UserGradeService userGradeService;
 
     //Post 새 등급 생성
-    @PostMapping
+    @PostMapping("/admin/grades")
     public ResponseEntity<UserGradeResponseDto> createGrade(@Valid @RequestBody UserGradeCreateRequestDto request) {
         UserGradeResponseDto response = userGradeService.createGrade(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     //GET 전체 등급 목록 조회
-    @GetMapping
+    @GetMapping("/grades")
     public ResponseEntity<List<UserGradeResponseDto>> getAllGrades() {
         List<UserGradeResponseDto> responses = userGradeService.getAllGrades();
         return ResponseEntity.ok(responses);
     }
 
     //PUT /{gradeId} 등급 정보 수정
-    @PutMapping("/{gradeId}")
+    @PutMapping("/admin/grades/{gradeId}")
     public ResponseEntity<UserGradeResponseDto> updateGrade(
             @PathVariable Long gradeId,
             @Valid @RequestBody UserGradeUpdateRequestDto request

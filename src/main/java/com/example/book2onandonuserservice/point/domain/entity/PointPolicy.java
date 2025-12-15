@@ -20,7 +20,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "PointPolicy")
+@Table(name = "point_policy")
 public class PointPolicy {
 
     @Id
@@ -32,9 +32,6 @@ public class PointPolicy {
     @Size(max = 50, message = "정책명은 최대 50자까지 입력 가능합니다.")
     @Column(name = "point_policy_name", unique = true, length = 50)
     private String policyName;
-
-    @Column(name = "point_add_rate")
-    private Double policyAddRate;
 
     @Column(name = "point_add_point")
     private Integer policyAddPoint;

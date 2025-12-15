@@ -22,12 +22,18 @@ public record LocalSignUpRequestDto(
 
         @NotBlank(message = "이메일은 필수입니다.")
         @Email(message = "이메일 형식으로 작성해주세요.")
-        @Size(max = 30, message = "30자 이내로 작성해주세요.")
+        @Size(max = 100, message = "100자 이내로 작성해주세요.")
         String email,
+
+        @NotBlank(message = "닉네임은 필수입니다.")
+        @Size(max = 20, message = "닉네임은 20자 이내로 작성해주세요.")
+        String nickname,
 
         @NotBlank(message = "연락처는 필수입니다.")
         @Size(max = 11, message = "전화번호는 11자 이내로 작성해주세요.")
+        @Pattern(regexp = "^\\d{11}$", message = "전화번호는 '-' 없이 11자리 숫자여야 합니다.")
         String phone,
+
 
         LocalDate birth
 ) {

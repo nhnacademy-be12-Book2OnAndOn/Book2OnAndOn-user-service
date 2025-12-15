@@ -16,7 +16,7 @@ public class UsePointRequestDto {
     private Long userId;
 
     @NotNull
-    private Long orderItemId;
+    private Long orderId;
 
     @NotNull
     private Integer useAmount; // 사용할 포인트

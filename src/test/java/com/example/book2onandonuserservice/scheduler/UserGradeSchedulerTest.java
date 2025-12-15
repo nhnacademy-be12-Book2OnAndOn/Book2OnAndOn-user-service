@@ -70,14 +70,12 @@ class UserGradeSchedulerTest {
         gold = new UserGrade(3L, GradeName.GOLD, 0.025, 200000);
         platinum = new UserGrade(4L, GradeName.PLATINUM, 0.03, 300000);
 
-        // [수정] userA 생성 (기본 생성자 + 초기화 메서드)
         Users realUserA = new Users();
         realUserA.initLocalAccount("userA", "pw", "A", "A");
         realUserA.setContactInfo("a@a.com", "0101234", LocalDate.now());
         realUserA.changeGrade(basic);
         userA = spy(realUserA);
 
-        // [수정] userB 생성
         Users realUserB = new Users();
         realUserB.initLocalAccount("userB", "pw", "B", "B");
         realUserB.setContactInfo("b@b.com", "0105678", LocalDate.now());
@@ -155,7 +153,6 @@ class UserGradeSchedulerTest {
         when(userGradeRepository.findAllByOrderByGradeCutlineDesc())
                 .thenReturn(List.of(platinum, gold, royal, basic));
 
-        // [수정] userC 생성 (기본 생성자 + 초기화 메서드)
         Users realUserC = new Users();
         realUserC.initLocalAccount("userC", "pw", "C", "C");
         realUserC.setContactInfo("c@c.com", "0109999", LocalDate.now());

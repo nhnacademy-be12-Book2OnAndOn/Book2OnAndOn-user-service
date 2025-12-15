@@ -20,7 +20,7 @@ public class UserAddressUpdateRequestDto {
     private String recipient;
 
     @Size(max = 11, message = "전화번호는 11자 이내로 작성해주세요.")
-    @Pattern(regexp = "^\\d{11}$", message = "전화번호는 '-' 없이 11자리 숫자여야 합니다.") // [수정] 정규식 패턴 추가
+    @Pattern(regexp = "^\\d{11}$", message = "전화번호는 '-' 없이 11자리 숫자여야 합니다.")
     private String phone;
 
     @Size(max = 10, message = "우편번호는 10자 이내여야 합니다.")

@@ -44,6 +44,19 @@ class AdminUserControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
+    //대시보드 회원 수 조회 테스트
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void countUsers_success() throws Exception {
+        Long expectedCount = 150L;
+        when(userService.countUsers()).thenReturn(expectedCount);
+
+        mockMvc.perform(get("/admin/users/count"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(expectedCount));
+        verify(userService).countUsers();
+    }
+
     // 전체 사용자 조회
     @Test
     @WithMockUser(roles = "SUPER_ADMIN")

@@ -85,6 +85,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public TokenResponseDto loginWithPayco(PaycoLoginRequestDto request) {
         return paycoAuthService.login(request);
     }

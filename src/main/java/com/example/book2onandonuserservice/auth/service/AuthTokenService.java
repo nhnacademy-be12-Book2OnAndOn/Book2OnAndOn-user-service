@@ -4,7 +4,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestD
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.RefreshToken;
 import com.example.book2onandonuserservice.auth.jwt.JwtTokenProvider;
-import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepository;
+import com.example.book2onandonuserservice.auth.repository.redis.RefreshTokenRepository;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.entity.Users;

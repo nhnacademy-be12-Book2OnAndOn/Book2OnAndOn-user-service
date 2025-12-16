@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.auth.repository;
+package com.example.book2onandonuserservice.auth.repository.redis;
 
 import com.example.book2onandonuserservice.auth.domain.entity.RefreshToken;
 import org.springframework.data.repository.CrudRepository;

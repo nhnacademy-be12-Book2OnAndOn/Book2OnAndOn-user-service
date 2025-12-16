@@ -26,12 +26,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(PointHistoryAdminController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class PointHistoryAdminControllerTest {
+
+    @MockBean(name = "redisTemplate")
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @MockBean
+    private RedisConnectionFactory redisConnectionFactory;
 
     @Autowired
     MockMvc mockMvc;

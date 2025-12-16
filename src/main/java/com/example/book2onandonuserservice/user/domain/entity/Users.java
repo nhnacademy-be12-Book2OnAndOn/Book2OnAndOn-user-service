@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -106,6 +107,8 @@ public class Users {
 
     public void initSocialAccount(String name, String nickname) {
         initDefaults(name, nickname);
+        this.userLoginId = "SOC_" + UUID.randomUUID().toString().substring(0, 20);
+        this.password = UUID.randomUUID().toString();
     }
 
     public void setContactInfo(String email, String phone, LocalDate birth) {

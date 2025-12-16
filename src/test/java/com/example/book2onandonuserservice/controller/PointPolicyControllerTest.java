@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,6 +39,12 @@ class PointPolicyControllerTest {
 
     @MockBean
     PointPolicyService pointPolicyService;
+
+    @MockBean(name = "redisTemplate")
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @MockBean
+    private RedisConnectionFactory redisConnectionFactory;
 
     private static final String USER_ID_HEADER = "X-User-Id";
 

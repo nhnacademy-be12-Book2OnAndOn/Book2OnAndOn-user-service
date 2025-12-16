@@ -1,6 +1,9 @@
 package com.example.book2onandonuserservice;
 
 import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepository;
+import com.example.book2onandonuserservice.global.client.BookServiceClient;
+import com.example.book2onandonuserservice.global.client.OrderServiceClient;
+import com.example.book2onandonuserservice.global.client.PaycoClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -53,6 +56,15 @@ class Book2onandonuserserviceApplicationTests {
 
     @MockBean
     private RefreshTokenRepository refreshTokenRepository;
+
+    @MockBean
+    private PaycoClient paycoClient;
+
+    @MockBean
+    private OrderServiceClient orderServiceClient;
+
+    @MockBean
+    private BookServiceClient bookServiceClient;
 
     @Test
     void contextLoads() {

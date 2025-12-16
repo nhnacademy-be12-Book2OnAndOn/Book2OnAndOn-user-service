@@ -60,7 +60,7 @@ public class UserController {
     @DeleteMapping("/users/me")
     public ResponseEntity<Void> deleteMyUser(
             @RequestHeader(USER_ID_HEADER) Long userId,
-            @RequestBody(required = false) String reason
+            @RequestParam(value = "reason", required = false) String reason
     ) {
         String finalReason = (reason == null || reason.isBlank()) ? "사유 선택 안함" : reason;
 

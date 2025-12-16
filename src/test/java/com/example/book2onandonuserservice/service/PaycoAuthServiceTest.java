@@ -16,7 +16,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.response.TokenRespons
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingException;
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
-import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
+import com.example.book2onandonuserservice.auth.repository.jpa.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthTokenService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;

@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 
 @Configuration
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.example.book2onandonuserservice.global.client")
 @EnableDiscoveryClient
-@EnableRedisRepositories
+@EnableRedisRepositories(basePackages = "com.example.book2onandonuserservice.auth.repository")
 public class AppConfig {
 }

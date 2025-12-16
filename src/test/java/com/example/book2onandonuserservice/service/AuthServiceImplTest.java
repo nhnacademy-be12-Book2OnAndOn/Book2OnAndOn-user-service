@@ -17,7 +17,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestD
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
-import com.example.book2onandonuserservice.auth.repository.UserAuthRepository;
+import com.example.book2onandonuserservice.auth.repository.jpa.UserAuthRepository;
 import com.example.book2onandonuserservice.auth.service.AuthTokenService;
 import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;

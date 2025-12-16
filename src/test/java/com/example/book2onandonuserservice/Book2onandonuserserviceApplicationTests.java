@@ -1,6 +1,6 @@
 package com.example.book2onandonuserservice;
 
-import com.example.book2onandonuserservice.auth.repository.RefreshTokenRepository;
+import com.example.book2onandonuserservice.auth.repository.redis.RefreshTokenRepository;
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.client.OrderServiceClient;
 import com.example.book2onandonuserservice.global.client.PaycoClient;

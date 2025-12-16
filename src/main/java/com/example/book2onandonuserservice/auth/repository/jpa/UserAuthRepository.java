@@ -1,4 +1,4 @@
-package com.example.book2onandonuserservice.auth.repository;
+package com.example.book2onandonuserservice.auth.repository.jpa;
 
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.user.domain.entity.Users;

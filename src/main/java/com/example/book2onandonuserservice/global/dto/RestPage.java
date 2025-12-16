@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +26,9 @@ public class RestPage<T> extends PageImpl<T> {
                     @JsonProperty("first") boolean first,
                     @JsonProperty("numberOfElements") int numberOfElements
     ) {
-        super(content, PageRequest.of(page, size), totalElements);
+        super(content != null ? content : new ArrayList<>(),
+                PageRequest.of(page, (size > 0) ? size : 10),
+                totalElements);
     }
 
     public RestPage(List<T> content, Pageable pageable, long total) {

@@ -109,6 +109,12 @@ public class Users {
         initDefaults(name, nickname);
         this.userLoginId = "SOC_" + UUID.randomUUID().toString().substring(0, 20);
         this.password = UUID.randomUUID().toString();
+
+        String safeNickname = nickname;
+        if (nickname.length() > 10) {
+            safeNickname = nickname.substring(0, 10);
+        }
+        this.nickname = safeNickname + "_" + UUID.randomUUID().toString().substring(0, 5);
     }
 
     public void setContactInfo(String email, String phone, LocalDate birth) {

@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdRespon
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.global.config.RabbitConfig;
+import com.example.book2onandonuserservice.global.dto.WelcomeMessage;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class AuthController {
         rabbitTemplate.convertAndSend(
                 RabbitConfig.EXCHANGE,
                 RabbitConfig.ROUTING_KEY_WELCOME,
-                response.userId()
+                new WelcomeMessage(response.userId())
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

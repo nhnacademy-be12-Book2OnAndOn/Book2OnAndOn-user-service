@@ -5,6 +5,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequest
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
@@ -93,6 +94,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(String accessToken) {
         authTokenService.logout(accessToken);
+    }
+
+    @Override
+    @Transactional
+    public TokenResponseDto reissue(ReissueRequestDto request) {
+        return authTokenService.reissueToken(request);
     }
 
     // 로컬 인증 로직

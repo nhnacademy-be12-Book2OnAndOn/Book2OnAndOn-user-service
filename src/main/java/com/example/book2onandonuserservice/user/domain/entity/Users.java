@@ -146,8 +146,9 @@ public class Users {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
+        this.nickname = "del_" + this.userId;
         this.email = "withdrawn_" + this.userId + "@deleted.com";
-        this.phone = null;
+        this.phone = "Deleted";
         this.withdrawReason = reason;
     }
 

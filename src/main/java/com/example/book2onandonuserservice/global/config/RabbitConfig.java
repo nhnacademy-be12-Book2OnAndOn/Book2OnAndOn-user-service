@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    public static final String EXCHANGE = "book2.dev.user.exchange.test";
-    public static final String ROUTING_KEY_WELCOME = "coupon.welcome.test";
+    public static final String EXCHANGE = "book2.dev.user.exchange";
+    public static final String ROUTING_KEY_WELCOME = "coupon.welcome";
     public static final String ROUTING_KEY_BIRTHDAY = "coupon.birthday"; //이거 추가
 
     @Bean

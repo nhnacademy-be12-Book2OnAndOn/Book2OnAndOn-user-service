@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.auth.service;
 
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.TokenRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.RefreshToken;
@@ -33,6 +34,29 @@ public class AuthTokenService {
         refreshTokenRepository.save(refreshToken);
 
         return tokenResponse;
+    }
+
+    // AccessToken 재발급 로직
+    public TokenResponseDto reissueToken(ReissueRequestDto request) {
+        if (!jwtTokenProvider.validateToken(request.refreshToken())) {
+            throw new IllegalArgumentException("유효하지 않은 RefreshToken입니다.");
+        }
+        String userId = jwtTokenProvider.getUserId(request.refreshToken());
+        RefreshToken storedToken = refreshTokenRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("저장된 Refresh 토큰이 없습니다. 다시 로그인 하세요."));
+
+        if (!storedToken.getToken().equals(request.refreshToken())) {
+            throw new IllegalArgumentException("RefreshToken이 일치하지 않습니다.");
+        }
+        String role = jwtTokenProvider.getRole(request.refreshToken());
+        TokenRequestDto tokenRequest = new TokenRequestDto(Long.parseLong(userId), role);
+
+        TokenResponseDto newToken = jwtTokenProvider.createTokens(tokenRequest);
+
+        // Redis에 새 RefreshToken 발급하며 보안강화
+        RefreshToken newRefreshToken = new RefreshToken(userId, newToken.refreshToken());
+        refreshTokenRepository.save(newRefreshToken);
+        return newToken;
     }
 
     //로그아웃

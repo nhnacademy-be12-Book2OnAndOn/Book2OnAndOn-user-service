@@ -5,6 +5,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequest
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserResponseDto;
@@ -40,4 +41,7 @@ public interface AuthService {
 
     //임시비밀번호
     void issueTemporaryPassword(FindPasswordRequestDto request);
+
+    //토큰 재발급
+    TokenResponseDto reissue(ReissueRequestDto request);
 }

@@ -5,6 +5,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequest
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
@@ -120,5 +121,10 @@ public class AuthController {
         return ResponseEntity.ok("휴면 상태가 해제되었습니다.");
     }
 
+    @PostMapping("/reissue")
+    public ResponseEntity<TokenResponseDto> reissue(@Valid @RequestBody ReissueRequestDto request) {
+        TokenResponseDto tokenResponse = authService.reissue(request);
+        return ResponseEntity.ok(tokenResponse);
+    }
 
 }

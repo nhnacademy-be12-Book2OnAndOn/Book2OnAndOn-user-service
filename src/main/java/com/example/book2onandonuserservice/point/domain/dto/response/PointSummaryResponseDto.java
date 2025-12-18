@@ -7,7 +7,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PointSummaryResponseDto {
-
     private int totalPoint;       // 현재 보유 포인트
     private int earnedThisMonth;  // 이번달 적립
     private int usedThisMonth;    // 이번달 사용

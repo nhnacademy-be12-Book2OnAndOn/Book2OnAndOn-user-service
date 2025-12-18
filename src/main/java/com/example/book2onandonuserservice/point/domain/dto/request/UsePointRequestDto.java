@@ -1,5 +1,6 @@
 package com.example.book2onandonuserservice.point.domain.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,17 +12,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UsePointRequestDto {
-
-    @NotNull
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long userId;
-
     @NotNull
     private Long orderId;
-
     @NotNull
     private Integer useAmount; // 사용할 포인트
-
     @NotNull
     private Integer allowedMaxUseAmount; // 최대 가용 가능 포인트
-
 }

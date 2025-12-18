@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PointHistoryAdminController {
 
     private final PointHistoryService pointHistoryService;
+
     private static final String USER_ID_HEADER = "X-User-Id";
 
     // 1. (관리자) 특정 유저의 포인트 전체 이력 조회
@@ -38,7 +39,7 @@ public class PointHistoryAdminController {
         return ResponseEntity.ok(pointHistory);
     }
 
-    // 2. (관리자) 특정 유저의 현재 보유 포인트 조회
+    // 2. (관리자) 특정 유저의 현재 보유 포인트 조회 -> 필요한가?
     // GET /admin/points/current
     @GetMapping("/current")
     public ResponseEntity<CurrentPointResponseDto> getUserCurrentPoint(

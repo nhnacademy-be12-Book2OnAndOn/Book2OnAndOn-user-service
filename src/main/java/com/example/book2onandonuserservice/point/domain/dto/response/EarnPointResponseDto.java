@@ -11,12 +11,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EarnPointResponseDto {
-
     private int changedPoint;
-
     private int totalPointAfter;
-
     private PointReason earnReason;    // SIGNUP / REVIEW / ORDER / REFUND / ADMIN_ADJUST 등
-
 }
 

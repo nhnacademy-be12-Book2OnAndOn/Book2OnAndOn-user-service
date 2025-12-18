@@ -40,6 +40,7 @@ import com.example.book2onandonuserservice.point.support.pointhistory.PointHisto
 import com.example.book2onandonuserservice.point.support.pointhistory.PointHistoryValidator;
 import com.example.book2onandonuserservice.point.support.pointhistory.UserReferenceLoader;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -385,7 +386,7 @@ class PointHistoryServiceImplTest {
         r2.setPointHistoryChange(50);
 
         when(pointHistoryRepository
-                .findPointsForUsage(1L)).thenReturn(List.of(r1, r2));
+                .findPointsForUsage(1L, LocalDateTime.now())).thenReturn(List.of(r1, r2));
 
         when(userReferenceLoader.getReference(1L)).thenReturn(user);
 
@@ -443,7 +444,7 @@ class PointHistoryServiceImplTest {
         use.setRemainingPoint(50);
 
         when(pointHistoryRepository
-                .findPointsForUsage(any()))
+                .findPointsForUsage(any(), LocalDateTime.now()))
                 .thenReturn(List.of(skip, use));
 
         when(userReferenceLoader.getReference(1L)).thenReturn(user);
@@ -468,7 +469,7 @@ class PointHistoryServiceImplTest {
                 .thenReturn(Optional.of(latest));
 
         when(pointHistoryRepository
-                .findPointsForUsage(any()))
+                .findPointsForUsage(any(), LocalDateTime.now()))
                 .thenReturn(List.of());
 
         assertThrows(PointBalanceIntegrityException.class, () -> pointHistoryService.usePoint(dto));
@@ -480,7 +481,7 @@ class PointHistoryServiceImplTest {
         when(pointHistoryRepository.findByOrderIdAndPointReason(any(), any()))
                 .thenReturn(List.of());
 
-        EarnPointResponseDto res = pointHistoryService.useCancle(1L, 1L);
+        EarnPointResponseDto res = pointHistoryService.useCancel(1L, 1L);
         assertEquals(0, res.getChangedPoint());
     }
 
@@ -493,7 +494,7 @@ class PointHistoryServiceImplTest {
         when(pointHistoryRepository.findByOrderIdAndPointReason(any(), any()))
                 .thenReturn(List.of(h));
 
-        EarnPointResponseDto res = pointHistoryService.useCancle(1L, 1L);
+        EarnPointResponseDto res = pointHistoryService.useCancel(1L, 1L);
         assertEquals(0, res.getChangedPoint());
     }
 
@@ -533,7 +534,7 @@ class PointHistoryServiceImplTest {
                 any()
         )).thenReturn(rollbackEntity);
 
-        EarnPointResponseDto dto = pointHistoryService.useCancle(orderId, userId);
+        EarnPointResponseDto dto = pointHistoryService.useCancel(orderId, userId);
 
         verify(pointHistoryRepository).save(rollbackEntity);
         assertEquals(50, dto.getChangedPoint());
@@ -557,7 +558,7 @@ class PointHistoryServiceImplTest {
                 .thenReturn(List.of(h));
 
         assertThrows(UserIdMismatchException.class,
-                () -> pointHistoryService.useCancle(orderId, requestUserId));
+                () -> pointHistoryService.useCancel(orderId, requestUserId));
     }
 
     // 환불

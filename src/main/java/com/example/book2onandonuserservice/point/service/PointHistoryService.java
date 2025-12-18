@@ -36,7 +36,7 @@ public interface PointHistoryService {
     EarnPointResponseDto usePoint(UsePointRequestDto dto);
 
     // 4-1. 결제 취소 시 포인트 롤백 (결제 전에 포인트 DB 반영)
-    EarnPointResponseDto useCancle(Long orderId, Long userId);
+    EarnPointResponseDto useCancel(Long orderId, Long userId);
 
     // 5. 포인트 반환 (결제취소/반품)
     EarnPointResponseDto refundPoint(RefundPointRequestDto dto);

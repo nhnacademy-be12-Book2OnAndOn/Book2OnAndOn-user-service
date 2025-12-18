@@ -5,6 +5,7 @@ import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.client.OrderServiceClient;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -46,6 +47,9 @@ class Book2onandonuserserviceApplicationTests {
 
     @MockBean
     private RedisConnectionFactory redisConnectionFactory;
+
+    @MockBean
+    private RedissonClient redissonClient;
 
     @MockBean
     private ReactiveRedisConnectionFactory reactiveRedisConnectionFactory;

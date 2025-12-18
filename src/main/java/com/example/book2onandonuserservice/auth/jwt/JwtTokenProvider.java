@@ -9,6 +9,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +31,7 @@ public class JwtTokenProvider {
     // 인증 성공 시 AccessToken, RefreshToken 생성
     public TokenResponseDto createTokens(TokenRequestDto tokenRequest) {
         String accessToken = createAccessToken(tokenRequest);
-        String refreshToken = createRefreshToken();
+        String refreshToken = createRefreshToken(tokenRequest);
 
         return new TokenResponseDto(
                 accessToken,
@@ -56,11 +57,19 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private String createRefreshToken() {
+    private String createRefreshToken(TokenRequestDto tokenRequest) {
         Date now = new Date();
         Date validity = new Date(now.getTime() + refreshTokenValidityInMilliseconds);
 
+        String jti = UUID.randomUUID().toString();
+
+        Claims claims = Jwts.claims();
+        claims.put("userId", tokenRequest.userId());
+        claims.put("role", tokenRequest.role());
+        claims.put("jti", jti);
+
         return Jwts.builder()
+                .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(validity)
                 .signWith(secretKey, SignatureAlgorithm.HS256)

@@ -16,6 +16,7 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequest
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.service.AuthService;
@@ -241,4 +242,23 @@ class AuthControllerTest {
         verify(authService).unlockDormantAccount(email, code);
     }
 
+    @Test
+    @DisplayName("토큰 재발급 성공 (200 OK)")
+    void reissue_Success() throws Exception {
+        ReissueRequestDto request = new ReissueRequestDto("expired-access-token", "valid-refresh-token");
+
+        TokenResponseDto response = new TokenResponseDto("new-access-token", "new-refresh-token", "Bearer", 3600L);
+
+        given(authService.reissue(any(ReissueRequestDto.class))).willReturn(response);
+
+        mockMvc.perform(post("/auth/reissue")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("new-access-token"))
+                .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
 }

@@ -4,6 +4,7 @@ import com.example.book2onandonuserservice.address.exception.AddressLimitExceede
 import com.example.book2onandonuserservice.address.exception.AddressNameDuplicateException;
 import com.example.book2onandonuserservice.address.exception.AddressNotFoundException;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
+import com.example.book2onandonuserservice.auth.exception.InvalidRefreshTokenException;
 import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingException;
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponse;
@@ -125,6 +126,15 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<ErrorResponse> handleAuthenticationFailed(RuntimeException ex) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", ex.getMessage());
+    }
+
+    /**
+     * [401] Refresh Token 유효성 검사 실패 (재로그인 필요)
+     */
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
+        log.warn("Invalid Refresh Token: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", ex.getMessage());
     }
 
     /**

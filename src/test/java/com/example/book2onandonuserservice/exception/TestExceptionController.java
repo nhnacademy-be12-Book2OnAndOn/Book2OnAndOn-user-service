@@ -1,6 +1,7 @@
 package com.example.book2onandonuserservice.exception;
 
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
+import com.example.book2onandonuserservice.auth.exception.InvalidRefreshTokenException;
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointPolicyException;
 import com.example.book2onandonuserservice.point.exception.SignupPointAlreadyGrantedException;
@@ -42,6 +43,12 @@ public class TestExceptionController {
     @GetMapping("/auth-failed")
     public void authFailed() {
         throw new AuthenticationFailedException();
+    }
+
+    // 401: Refresh Token 유효성 검사 실패
+    @GetMapping("/invalid-refresh-token")
+    public void invalidRefreshToken() {
+        throw new InvalidRefreshTokenException("유효하지 않은 RefreshToken입니다.");
     }
 
     // 403: 휴면 계정

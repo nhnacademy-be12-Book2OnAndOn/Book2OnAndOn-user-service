@@ -107,7 +107,7 @@ public class Users {
 
     public void initSocialAccount(String name, String nickname) {
         initDefaults(name, nickname);
-        this.userLoginId = "SOC_" + UUID.randomUUID().toString().substring(0, 20);
+        this.userLoginId = "PAYCO_SOC_" + UUID.randomUUID().toString().substring(0, 20);
         this.password = UUID.randomUUID().toString();
 
         String safeNickname = nickname;

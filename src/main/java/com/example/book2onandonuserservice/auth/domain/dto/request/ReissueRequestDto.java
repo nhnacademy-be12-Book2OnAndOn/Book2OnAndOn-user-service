@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 //AccessToken 재발급 로직
 public record ReissueRequestDto(
-        @NotBlank String accessToken,
+        String accessToken,
         @NotBlank String refreshToken
 ) {
 }

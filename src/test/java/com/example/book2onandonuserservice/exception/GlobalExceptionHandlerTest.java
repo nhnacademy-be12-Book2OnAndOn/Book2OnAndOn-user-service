@@ -78,6 +78,16 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").exists());
     }
 
+    // [401] Refresh Token 유효성 검사 실패 테스트
+    @Test
+    @DisplayName("InvalidRefreshTokenException 발생 시 401 반환 (INVALID_REFRESH_TOKEN)")
+    void handleInvalidRefreshToken_returns401() throws Exception {
+        mockMvc.perform(get("/test/invalid-refresh-token"))
+                .andExpect(status().isUnauthorized()) // 401 확인
+                .andExpect(jsonPath("$.error", is("INVALID_REFRESH_TOKEN"))) // 에러 코드 확인
+                .andExpect(jsonPath("$.message", is("유효하지 않은 RefreshToken입니다.")));
+    }
+
     // [403] 권한 없음/휴면 테스트
     @Test
     @DisplayName("휴면 계정 접속 시 403 반환")

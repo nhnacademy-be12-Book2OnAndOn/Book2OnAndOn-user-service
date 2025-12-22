@@ -11,13 +11,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PointHistoryAdminAdjustRequestDto {
-
     @NotNull
     private Long userId;
-
     @NotNull
     private Integer amount;
-
     private String memo; // 보상 사유
-
 }

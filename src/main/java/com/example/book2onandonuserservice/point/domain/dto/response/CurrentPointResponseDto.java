@@ -10,7 +10,5 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CurrentPointResponseDto {
-
     private int currentPoint;
-
 }

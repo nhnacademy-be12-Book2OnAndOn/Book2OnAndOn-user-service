@@ -1,8 +1,10 @@
 package com.example.book2onandonuserservice.user.controller;
 
+import com.example.book2onandonuserservice.global.annotation.AuthCheck;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserGradeCreateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.request.UserGradeUpdateRequestDto;
 import com.example.book2onandonuserservice.user.domain.dto.response.UserGradeResponseDto;
+import com.example.book2onandonuserservice.user.domain.entity.Role;
 import com.example.book2onandonuserservice.user.service.UserGradeService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -25,6 +27,7 @@ public class UserGradeController {
 
     //Post 새 등급 생성
     @PostMapping("/admin/grades")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<UserGradeResponseDto> createGrade(@Valid @RequestBody UserGradeCreateRequestDto request) {
         UserGradeResponseDto response = userGradeService.createGrade(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -39,6 +42,7 @@ public class UserGradeController {
 
     //PUT /{gradeId} 등급 정보 수정
     @PutMapping("/admin/grades/{gradeId}")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<UserGradeResponseDto> updateGrade(
             @PathVariable Long gradeId,
             @Valid @RequestBody UserGradeUpdateRequestDto request

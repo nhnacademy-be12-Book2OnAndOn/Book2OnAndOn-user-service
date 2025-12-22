@@ -11,8 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PointPolicyActiveUpdateRequestDto {
-
     @NotNull
     private Boolean isActive;
-
 }

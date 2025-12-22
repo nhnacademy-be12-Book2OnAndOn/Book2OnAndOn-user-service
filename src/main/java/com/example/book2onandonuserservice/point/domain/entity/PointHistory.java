@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +27,15 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "point_history")
+@Table(name = "point_history",
+        indexes = {
+                @Index(name = "idx_point_user_created", columnList = "user_id, point_created_date"),
+                @Index(name = "idx_point_user_expired", columnList = "user_id, point_expired_date"),
+                @Index(name = "idx_point_order_reason", columnList = "order_id, point_reason"),
+                @Index(name = "idx_point_return", columnList = "return_id"),
+                @Index(name = "idx_point_review", columnList = "review_id")
+        }
+)
 public class PointHistory {
 
     @Id
@@ -46,8 +55,7 @@ public class PointHistory {
     @Column(name = "point_created_date")
     private LocalDateTime pointCreatedDate;
 
-    @NotNull
-    @Column(name = "point_expired_date")
+    @Column(name = "point_expired_date") // 차감 row는 만료일 개념이 없으므로
     private LocalDateTime pointExpiredDate;
 
     @Column(name = "remaining_point")

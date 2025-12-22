@@ -8,25 +8,14 @@ import lombok.Getter;
 @Getter
 @Builder
 public class PointHistoryResponseDto {
-
     private Long pointHistoryId;
-
     private int pointHistoryChange;
-
     private int totalPoints;
-
     private LocalDateTime pointCreatedDate;
-
     private LocalDateTime pointExpiredDate;
-
     private Integer remainingPoint;
-
     private PointReason pointReason;
-
     private Long orderId;
-
     private Long reviewId;
-
     private Long returnId;
-
 }

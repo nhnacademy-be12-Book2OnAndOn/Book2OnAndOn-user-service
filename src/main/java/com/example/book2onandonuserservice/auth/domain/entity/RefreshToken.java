@@ -12,4 +12,5 @@ public class RefreshToken {
     @Id
     private String userId;
     private String token;
+    private long updatedAt;
 }

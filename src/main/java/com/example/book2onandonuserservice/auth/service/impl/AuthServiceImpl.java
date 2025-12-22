@@ -15,6 +15,7 @@ import com.example.book2onandonuserservice.auth.service.AuthService;
 import com.example.book2onandonuserservice.auth.service.AuthTokenService;
 import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
+import com.example.book2onandonuserservice.global.annotation.DistributedLock;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
@@ -97,7 +98,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @DistributedLock(key = "'REISSUE_TOKEN:' + #request.refreshToken") //RefreshToken 값을 기준으로 락 설정
+    @Transactional // 순서: Lock 획득 -> Transaction 시작 -> 로직 수행 -> Transaction 커밋 -> Lock 해제
     public TokenResponseDto reissue(ReissueRequestDto request) {
         return authTokenService.reissueToken(request);
     }

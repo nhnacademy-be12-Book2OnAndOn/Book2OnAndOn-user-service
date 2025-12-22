@@ -1,9 +1,11 @@
 package com.example.book2onandonuserservice.point.controller;
 
+import com.example.book2onandonuserservice.global.annotation.AuthCheck;
 import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyActiveUpdateRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.request.PointPolicyUpdateRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointPolicyResponseDto;
 import com.example.book2onandonuserservice.point.service.PointPolicyService;
+import com.example.book2onandonuserservice.user.domain.entity.Role;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class PointPolicyController {
     // 1. (관리자) 정책 전체 조회
     // GET /admin/point-policies
     @GetMapping
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<List<PointPolicyResponseDto>> getAllPolicies() {
         List<PointPolicyResponseDto> pointPolicy = pointPolicyService.getAllPolicies();
         return ResponseEntity.ok(pointPolicy);
@@ -34,6 +37,7 @@ public class PointPolicyController {
     // 2. (관리자) 정책 단건 조회
     // GET /admin/point-policies/SIGNUP
     @GetMapping("/{policyName}")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<PointPolicyResponseDto> getPolicy(
             @PathVariable String policyName
     ) {
@@ -44,6 +48,7 @@ public class PointPolicyController {
     // 3. (관리자) 정책 비율/고정포인트 수정
     // PUT /admin/point-policies/1
     @PutMapping("/{policyId}")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<PointPolicyResponseDto> updatePolicy(
             @PathVariable Integer policyId,
             @Valid @RequestBody PointPolicyUpdateRequestDto dto
@@ -55,6 +60,7 @@ public class PointPolicyController {
     // 4. (관리자) 정책 활성/비활성
     // PATCH /admin/point-policies/1/active
     @PatchMapping("/{policyId}/active")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<PointPolicyResponseDto> updatePolicyActive(
             @PathVariable Integer policyId,
             @Valid @RequestBody PointPolicyActiveUpdateRequestDto dto

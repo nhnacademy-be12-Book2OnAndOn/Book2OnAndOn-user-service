@@ -14,7 +14,9 @@ import com.example.book2onandonuserservice.auth.domain.dto.request.FindIdRequest
 import com.example.book2onandonuserservice.auth.domain.dto.request.FindPasswordRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LocalSignUpRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.request.LoginRequestDto;
+import com.example.book2onandonuserservice.auth.domain.dto.request.ReissueRequestDto;
 import com.example.book2onandonuserservice.auth.domain.dto.response.FindIdResponseDto;
+import com.example.book2onandonuserservice.auth.domain.dto.response.TokenResponseDto;
 import com.example.book2onandonuserservice.auth.domain.entity.UserAuth;
 import com.example.book2onandonuserservice.auth.exception.AuthenticationFailedException;
 import com.example.book2onandonuserservice.auth.repository.jpa.UserAuthRepository;
@@ -110,6 +112,35 @@ class AuthServiceImplTest {
         authService.logout("accessToken");
         verify(authTokenService).logout("accessToken");
     }
+
+    // 토큰 재발급 테스트
+    @Test
+    @DisplayName("재발급 성공 - AuthTokenService에 위임하고 결과 반환")
+    void reissue_success() {
+        ReissueRequestDto request = new ReissueRequestDto("oldAccessToken", "oldRefreshToken");
+        TokenResponseDto expected = mock(TokenResponseDto.class);
+
+        when(authTokenService.reissueToken(request)).thenReturn(expected);
+
+        TokenResponseDto result = authService.reissue(request);
+
+        assertThat(result).isSameAs(expected);
+        verify(authTokenService).reissueToken(request);
+    }
+
+    @Test
+    @DisplayName("재발급 실패 - AuthTokenService에서 예외 발생 시 그대로 전파")
+    void reissue_fail_propagateException() {
+        ReissueRequestDto request = new ReissueRequestDto("oldAccessToken", "oldRefreshToken");
+
+        when(authTokenService.reissueToken(request))
+                .thenThrow(new RuntimeException("토큰 재발급 실패"));
+
+        assertThatThrownBy(() -> authService.reissue(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("토큰 재발급 실패");
+    }
+
 
     // 로컬 회원가입 테스트
     @Test

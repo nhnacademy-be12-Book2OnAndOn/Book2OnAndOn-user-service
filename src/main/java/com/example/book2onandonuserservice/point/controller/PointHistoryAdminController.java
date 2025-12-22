@@ -1,10 +1,12 @@
 package com.example.book2onandonuserservice.point.controller;
 
+import com.example.book2onandonuserservice.global.annotation.AuthCheck;
 import com.example.book2onandonuserservice.point.domain.dto.request.PointHistoryAdminAdjustRequestDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
+import com.example.book2onandonuserservice.user.domain.entity.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,11 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class PointHistoryAdminController {
 
     private final PointHistoryService pointHistoryService;
+
     private static final String USER_ID_HEADER = "X-User-Id";
 
     // 1. (관리자) 특정 유저의 포인트 전체 이력 조회
     // GET /admin/points
     @GetMapping
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<Page<PointHistoryResponseDto>> getUserPointHistory(
 //            @RequestHeader(USER_ID_HEADER) Long adminUserId, // == userId / adminUserId: 이 API를 호출한 관리자 ID
             @RequestParam Long userId,
@@ -38,9 +42,10 @@ public class PointHistoryAdminController {
         return ResponseEntity.ok(pointHistory);
     }
 
-    // 2. (관리자) 특정 유저의 현재 보유 포인트 조회
+    // 2. (관리자) 특정 유저의 현재 보유 포인트 조회 -> 필요한가?
     // GET /admin/points/current
     @GetMapping("/current")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<CurrentPointResponseDto> getUserCurrentPoint(
             @RequestParam Long userId
     ) {
@@ -51,6 +56,7 @@ public class PointHistoryAdminController {
     // 3. (관리자) 수동 포인트 지급/차감
     // POST /admin/points/adjust
     @PostMapping("/adjust")
+    @AuthCheck(Role.MEMBER_ADMIN)
     public ResponseEntity<EarnPointResponseDto> adjustPointByAdmin(
             @Valid @RequestBody PointHistoryAdminAdjustRequestDto requestDto
     ) {

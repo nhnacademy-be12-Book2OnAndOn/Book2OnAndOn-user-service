@@ -79,7 +79,9 @@ class AuthTokenServiceTest {
 
         given(jwtTokenProvider.validateToken(oldRefreshToken)).willReturn(true);
         given(jwtTokenProvider.getUserId(oldRefreshToken)).willReturn(userId);
-        RefreshToken storedToken = new RefreshToken(userId, oldRefreshToken);
+
+        RefreshToken storedToken = new RefreshToken(userId, oldRefreshToken, System.currentTimeMillis());
+
         given(refreshTokenRepository.findById(userId)).willReturn(Optional.of(storedToken));
         given(jwtTokenProvider.getRole(oldRefreshToken)).willReturn(role);
 
@@ -102,7 +104,7 @@ class AuthTokenServiceTest {
         given(jwtTokenProvider.validateToken("invalid-ref")).willReturn(false);
 
         assertThatThrownBy(() -> authTokenService.reissueToken(requestDto))
-                .isInstanceOf(InvalidRefreshTokenException.class) // 변경됨
+                .isInstanceOf(InvalidRefreshTokenException.class)
                 .hasMessage("유효하지 않은 RefreshToken입니다.");
     }
 
@@ -117,12 +119,12 @@ class AuthTokenServiceTest {
         given(refreshTokenRepository.findById(userId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authTokenService.reissueToken(requestDto))
-                .isInstanceOf(InvalidRefreshTokenException.class) // 변경됨
-                .hasMessage("저장된 Refresh 토큰이 없습니다. 다시 로그인 하세요.");
+                .isInstanceOf(InvalidRefreshTokenException.class)
+                .hasMessage("다시 로그인 하세요.");
     }
 
     @Test
-    @DisplayName("토큰 재발급 실패 - 요청 토큰과 저장된 토큰 불일치")
+    @DisplayName("토큰 재발급 실패 - 요청 토큰과 저장된 토큰 불일치 (RTR 위반)")
     void reissueToken_Fail_TokenMismatch() {
         ReissueRequestDto requestDto = new ReissueRequestDto("acc", "request-ref");
         String userId = "1";
@@ -130,14 +132,15 @@ class AuthTokenServiceTest {
         given(jwtTokenProvider.validateToken("request-ref")).willReturn(true);
         given(jwtTokenProvider.getUserId("request-ref")).willReturn(userId);
 
-        RefreshToken storedToken = new RefreshToken(userId, "different-stored-ref");
+        long pastTime = System.currentTimeMillis() - 20000;
+        RefreshToken storedToken = new RefreshToken(userId, "different-stored-ref", pastTime);
+
         given(refreshTokenRepository.findById(userId)).willReturn(Optional.of(storedToken));
 
         assertThatThrownBy(() -> authTokenService.reissueToken(requestDto))
-                .isInstanceOf(InvalidRefreshTokenException.class) // 변경됨
-                .hasMessage("RefreshToken이 일치하지 않습니다.");
+                .isInstanceOf(InvalidRefreshTokenException.class)
+                .hasMessage("이미 사용된 토큰입니다. 보안을 위해 로그아웃됩니다.");
     }
-
 
     @Test
     @DisplayName("로그아웃 성공 - 토큰 유효시간이 남은 경우 블랙리스트 등록 및 DB 삭제")
@@ -160,7 +163,6 @@ class AuthTokenServiceTest {
     @Test
     @DisplayName("로그아웃 성공 - 이미 만료된 토큰인 경우 블랙리스트 등록 건너뜀")
     void logout_ExpiredToken() {
-        // Given
         String accessToken = "expired_access_token";
         String userId = "1";
 

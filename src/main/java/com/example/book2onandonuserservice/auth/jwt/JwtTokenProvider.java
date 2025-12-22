@@ -15,6 +15,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final String KEY_USER_ID = "userId";
+    private static final String KEY_ROLE = "role";
+
     private final Key secretKey;
     private final long accessTokenValidityInMilliseconds;
     private final long refreshTokenValidityInMilliseconds;
@@ -43,8 +47,8 @@ public class JwtTokenProvider {
 
     private String createAccessToken(TokenRequestDto tokenRequest) {
         Claims claims = Jwts.claims();
-        claims.put("userId", tokenRequest.userId());
-        claims.put("role", tokenRequest.role());
+        claims.put(KEY_USER_ID, tokenRequest.userId());
+        claims.put(KEY_ROLE, tokenRequest.role());
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + accessTokenValidityInMilliseconds);
@@ -64,8 +68,8 @@ public class JwtTokenProvider {
         String jti = UUID.randomUUID().toString();
 
         Claims claims = Jwts.claims();
-        claims.put("userId", tokenRequest.userId());
-        claims.put("role", tokenRequest.role());
+        claims.put(KEY_USER_ID, tokenRequest.userId());
+        claims.put(KEY_ROLE, tokenRequest.role());
         claims.put("jti", jti);
 
         return Jwts.builder()
@@ -77,11 +81,11 @@ public class JwtTokenProvider {
     }
 
     public String getUserId(String token) {
-        return parseClaims(token).get("userId").toString();
+        return parseClaims(token).get(KEY_USER_ID).toString();
     }
 
     public String getRole(String token) {
-        return parseClaims(token).get("role", String.class);
+        return parseClaims(token).get(KEY_ROLE, String.class);
     }
 
     public long getExpiration(String token) {
@@ -107,5 +111,9 @@ public class JwtTokenProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+
+    public Date getIssuedAt(String token) {
+        return parseClaims(token).getIssuedAt();
     }
 }

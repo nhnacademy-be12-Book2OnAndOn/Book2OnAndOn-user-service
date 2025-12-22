@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EarnReviewPointInternalRequestDto {
-    private Long userId;
+    //    private Long userId;
     private Long reviewId;
     private boolean hasImage;
 }

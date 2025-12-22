@@ -24,7 +24,7 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     Page<PointHistory> findAllByUserUserIdOrderByPointCreatedDateDesc(Long userId, Pageable pageable);
 
     /**
-     * 회원의 포인트 적립/사용 이력 (마이페이지)
+     * 회원의 포인트 적립/사용(필터) 이력 (마이페이지)
      */
     @Query("SELECT p FROM PointHistory p "
             + "WHERE p.user.userId = :userId "
@@ -70,7 +70,7 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     /**
      * 특정 반품의 포인트 반환 이력 조회
      */
-    List<PointHistory> findByReturnId(Long returnId);
+    List<PointHistory> findByRefundId(Long refundId);
 
     /**
      * 해당 주문에서 USE가 이미 한 번 발생했는지 여부(결제)
@@ -83,9 +83,9 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
     boolean existsByUserUserIdAndPointReason(Long userId, PointReason pointReason);
 
     /**
-     * 취소(결제취소) 중복 방지용: "orderId + REFUND + returnId null"
+     * 취소(결제취소) 중복 방지용: "orderId + REFUND + refundId null"
      */
-    boolean existsByOrderIdAndPointReasonAndReturnIdIsNull(Long orderId, PointReason pointReason);
+    boolean existsByOrderIdAndPointReasonAndRefundIdIsNull(Long orderId, PointReason pointReason);
 
     /**
      * 실제로 사용된(차감된) 총 포인트 금액을 계산
@@ -189,5 +189,8 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
               AND ph.pointCreatedDate BETWEEN :from AND :to
             """)
     int sumUsedInPeriod(Long userId, LocalDateTime from, LocalDateTime to);
+
+    boolean existsByOrderIdAndRefundIdAndPointReason(Long orderId, Long refundId, PointReason pointReason);
+
 }
 

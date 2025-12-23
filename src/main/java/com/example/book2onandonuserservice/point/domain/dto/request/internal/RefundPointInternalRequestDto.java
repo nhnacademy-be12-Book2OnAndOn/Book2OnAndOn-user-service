@@ -7,7 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RefundPointInternalRequestDto {
-    //    private Long userId;
     private Long orderId;
     private Long refundId;
     private Integer usedPoint;      // 포인트 결제분 복구, nullable 가능

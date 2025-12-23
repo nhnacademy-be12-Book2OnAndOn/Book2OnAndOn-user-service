@@ -13,6 +13,7 @@ import com.example.book2onandonuserservice.point.domain.dto.request.PointHistory
 import com.example.book2onandonuserservice.point.domain.dto.response.CurrentPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.EarnPointResponseDto;
 import com.example.book2onandonuserservice.point.domain.dto.response.PointHistoryResponseDto;
+import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -43,6 +44,7 @@ class PointHistoryAdminControllerTest {
 
     @Autowired
     MockMvc mockMvc;
+
     @Autowired
     ObjectMapper objectMapper;
 
@@ -50,7 +52,7 @@ class PointHistoryAdminControllerTest {
     PointHistoryService pointHistoryService;
 
     @Test
-    @DisplayName("GET /admin/points?userId=... : 특정 유저 포인트 이력 페이지 조회")
+    @DisplayName("[GET] /admin/points - 특정 유저 포인트 이력 페이지 조회: 200 OK")
     void getUserPointHistory_ok() throws Exception {
         long userId = 1L;
 
@@ -70,12 +72,12 @@ class PointHistoryAdminControllerTest {
     }
 
     @Test
-    @DisplayName("GET /admin/points/current?userId=... : 특정 유저 현재 포인트 조회")
+    @DisplayName("[GET] /admin/points/current - 특정 유저 현재 포인트 조회: 200 OK")
     void getUserCurrentPoint_ok() throws Exception {
         long userId = 1L;
 
         given(pointHistoryService.getMyCurrentPoint(userId))
-                .willReturn(Mockito.mock(CurrentPointResponseDto.class));
+                .willReturn(new CurrentPointResponseDto(1000));
 
         mockMvc.perform(get("/admin/points/current")
                         .param("userId", String.valueOf(userId)))
@@ -85,12 +87,17 @@ class PointHistoryAdminControllerTest {
     }
 
     @Test
-    @DisplayName("POST /admin/points/adjust : 관리자 수동 지급/차감")
+    @DisplayName("[POST] /admin/points/adjust - 관리자 수동 지급/차감: 200 OK")
     void adjustPointByAdmin_ok() throws Exception {
-        PointHistoryAdminAdjustRequestDto req = Mockito.mock(PointHistoryAdminAdjustRequestDto.class);
+        // mock DTO를 JSON으로 보내면 {}가 될 수 있어 검증(@Valid)에서 400이 뜰 수 있음
+        // -> 실제 객체로 필수 필드 채워서 200 보장
+        PointHistoryAdminAdjustRequestDto req = new PointHistoryAdminAdjustRequestDto();
+        req.setUserId(1L);
+        req.setAmount(100);
+        req.setMemo("테스트 지급");
 
         given(pointHistoryService.adjustPointByAdmin(any(PointHistoryAdminAdjustRequestDto.class)))
-                .willReturn(Mockito.mock(EarnPointResponseDto.class));
+                .willReturn(new EarnPointResponseDto(100, 1100, PointReason.ADMIN_ADJUST));
 
         mockMvc.perform(post("/admin/points/adjust")
                         .contentType(MediaType.APPLICATION_JSON)

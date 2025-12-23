@@ -14,7 +14,6 @@ import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.exception.AdminAdjustPointNegativeBalanceException;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
-import com.example.book2onandonuserservice.point.exception.InvalidAdminAdjustPointException;
 import com.example.book2onandonuserservice.point.exception.InvalidPointRateException;
 import com.example.book2onandonuserservice.point.exception.InvalidRefundPointException;
 import com.example.book2onandonuserservice.point.exception.PointBalanceIntegrityException;
@@ -26,6 +25,7 @@ import com.example.book2onandonuserservice.point.support.pointhistory.PointHisto
 import com.example.book2onandonuserservice.point.support.pointhistory.PointHistoryValidator;
 import com.example.book2onandonuserservice.point.support.pointhistory.UserReferenceLoader;
 import com.example.book2onandonuserservice.user.domain.entity.Users;
+import com.example.book2onandonuserservice.user.exception.MissingRequiredFieldException;
 import com.example.book2onandonuserservice.user.repository.UsersRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,6 +47,15 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     private final PointCalculationHelper pointCalculationHelper;
     private final PointHistoryMapper pointHistoryMapper;
     private final PointHistoryValidator pointHistoryValidator;
+
+    private static final String FIELD_USER_ID = "userId";
+    private static final String FIELD_REVIEW_ID = "reviewId";
+    private static final String FIELD_ORDER_ID = "orderId";
+    private static final String FIELD_REFUND_ID = "refundId";
+    private static final String FIELD_PURE_AMOUNT = "pureAmount";
+    private static final String FIELD_GRADE_RATE = "pointAddRate";
+    private static final String FIELD_USE_AMOUNT = "useAmount";
+    private static final String FIELD_ALLOWED_MAX_USE_AMOUNT = "allowedMaxUseAmount";
 
     // ===== 공통 유틸 =====
     // 1. 현재 보유 포인트 "숫자만" 필요할 때 사용하는 내부 헬퍼
@@ -178,10 +187,10 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         boolean hasImage = dto.isHasImage();
 
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
         if (reviewId == null) {
-            throw new IllegalArgumentException("reviewId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_REVIEW_ID);
         }
 
         // 1) 리뷰 중복 적립 방지
@@ -225,13 +234,13 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         Double gradeRate = dto.getPointAddRate();
 
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_ORDER_ID);
         }
         if (pureAmountObj == null) {
-            throw new IllegalArgumentException("pureAmount는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_PURE_AMOUNT);
         }
         if (gradeRate == null) {
             throw new InvalidPointRateException(null);
@@ -286,16 +295,16 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         Integer allowedMaxObj = dto.getAllowedMaxUseAmount(); // 주문에서 받아야 할 듯 : 최대 보유 포인트 or 쿠폰 할인 제외한 최대 금액
 
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_ORDER_ID);
         }
         if (useAmountObj == null) {
-            throw new IllegalArgumentException("useAmount는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USE_AMOUNT);
         }
         if (allowedMaxObj == null) {
-            throw new IllegalArgumentException("allowedMaxUseAmount는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_ALLOWED_MAX_USE_AMOUNT);
         }
 
         int useAmount = useAmountObj;
@@ -366,68 +375,13 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     }
 
     // 4-1. 결제 취소 시 포인트 롤백 -> 비동기 방식으로 처리해아 함 -> rabbitMQ 적용
-//    @Override
-//    public EarnPointResponseDto useCancel(Long orderId, Long userId) {
-//        if (orderId == null) {
-//            throw new IllegalArgumentException("orderId는 필수입니다.");
-//        }
-//        if (userId == null) {
-//            throw new IllegalArgumentException("userId는 필수입니다.");
-//        }
-//
-//        // 결제취소 중복 방지: "orderId + FAILED + refundId null" 이미 있으면 재처리 금지
-//        boolean alreadyCanceled =
-//                pointHistoryRepository.existsByOrderIdAndPointReasonAndRefundIdIsNull(orderId, PointReason.FAILED);
-//        int beforeTotal = getLatestTotalForUpdate(userId);
-//        if (alreadyCanceled) {
-//            return new EarnPointResponseDto(0, beforeTotal, PointReason.FAILED);
-//        }
-//
-//        // 1) 이 주문에 대한 USE 이력 조회 (한 건만 가져와도 userId는 동일)
-//        List<PointHistory> useHistories =
-//                pointHistoryRepository.findByOrderIdAndPointReason(orderId, PointReason.USE);
-//        if (useHistories.isEmpty()) {
-//            // 이미 취소되었거나, 애초에 포인트를 사용하지 않은 주문
-//            // 필요에 따라 0P 변화로 리턴하거나 예외 처리 선택
-//            return new EarnPointResponseDto(0, beforeTotal, PointReason.FAILED);
-//        }
-//
-//        // 2) 이 주문에서 실제로 사용된 포인트 합계 구하기
-//        int usedSum = useHistories.stream()
-//                .mapToInt(history -> -history.getPointHistoryChange()) // 음수를 양수로
-//                .sum();
-//
-//        if (usedSum <= 0) {
-//            // USE 이력이 이상한 상황 방어
-//            return new EarnPointResponseDto(0, beforeTotal, PointReason.FAILED);
-//        }
-//
-//        Users user = userReferenceLoader.getReference(userId);
-//
-//        // 3) 포인트 복구 이력 추가 : "새 적립 row"로 복구 (remainingPoint = usedSum)
-//        int newTotal = beforeTotal + usedSum;
-//
-//        PointHistory rollbackHistory = pointHistoryMapper.toEarnEntity(
-//                user,
-//                PointReason.FAILED,
-//                usedSum,
-//                newTotal,
-//                orderId,
-//                null,
-//                null,
-//                getCancelRefundExpireAt()
-//        );
-//        pointHistoryRepository.save(rollbackHistory);
-//
-//        return new EarnPointResponseDto(usedSum, newTotal, PointReason.FAILED);
-//    }
     @Override
     public EarnPointResponseDto useCancel(Long orderId, Long userId) {
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_ORDER_ID);
         }
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
 
         // ===== 1) 취소 원복(사용포인트 복구) 멱등 =====
@@ -478,7 +432,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         // ===== B) 구매 적립(ORDER) 회수(취소) =====
         if (!alreadyReclaimed) {
-            int newTotal = reclaimOrderEarnRemainingForCancel(user, orderId, userId, latestTotal);
+            int newTotal = reclaimOrderEarnRemainingForCancel(user, orderId, latestTotal);
             netChange += (newTotal - latestTotal); // newTotal - latestTotal 는 음수(차감)
             latestTotal = newTotal;
         }
@@ -487,7 +441,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     }
 
     // useCancel Helper
-    private int reclaimOrderEarnRemainingForCancel(Users user, Long orderId, Long userId, int latestTotal) {
+    private int reclaimOrderEarnRemainingForCancel(Users user, Long orderId, int latestTotal) {
         // 멱등(취소): orderId + ORDER_RECLAIM + refundId null
         boolean alreadyReclaimed =
                 pointHistoryRepository.existsByOrderIdAndPointReasonAndRefundIdIsNull(orderId,
@@ -550,13 +504,13 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int returnAmount = dto.getRefundAmount() != null ? dto.getRefundAmount() : 0;
 
         if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
         if (orderId == null) {
-            throw new IllegalArgumentException("orderId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_ORDER_ID);
         }
         if (refundId == null) {
-            throw new IllegalArgumentException("refundId는 필수입니다.");
+            throw new MissingRequiredFieldException(FIELD_REFUND_ID);
         }
 
         // 5-1. 동일 refundId 중복 처리 방지
@@ -742,17 +696,13 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
     // 8. 관리자 수동 포인트 지급/차감
     @Override
-    public EarnPointResponseDto adjustPointByAdmin(PointHistoryAdminAdjustRequestDto requestDto) {
-        Long userId = requestDto.getUserId();
-        int amount = requestDto.getAmount();
+    public EarnPointResponseDto adjustPointByAdmin(PointHistoryAdminAdjustRequestDto dto) {
+        Long userId = dto.getUserId();
+        int amount = dto.getAmount();
 
-        if (amount == 0) {
-            throw new InvalidAdminAdjustPointException("조정 포인트는 0일 수 없습니다.");
-        }
-
+        pointHistoryValidator.validateAdjustAmountNotZero(amount);
         pointHistoryValidator.validatePositiveAmount(Math.abs(amount), "조정 포인트는 0보다 커야 합니다.");
 
-        int deductAmount = Math.abs(amount);
         int latestTotal = getLatestTotalForUpdate(userId);
         int newTotal = latestTotal + amount;
         if (newTotal < 0) {
@@ -761,9 +711,9 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         Users user = userReferenceLoader.getReference(userId);
 
-        PointHistory history;
+        // 적립(+) 케이스
         if (amount > 0) {
-            history = pointHistoryMapper.toEarnEntity(
+            PointHistory history = pointHistoryMapper.toEarnEntity(
                     user,
                     PointReason.ADMIN_ADJUST,
                     amount,
@@ -773,39 +723,46 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                     null,
                     getDefaultExpireAt()
             );
-        } else {
-            if (latestTotal < deductAmount) {
-                throw new AdminAdjustPointNegativeBalanceException(latestTotal, amount);
-            }
-
-            // FIFO: 기존 적립된 포인트들의 remainingPoint 깎기
-            List<PointHistory> earnRows = pointHistoryRepository.findPointsForUsage(userId, LocalDateTime.now());
-            int remainToDeduct = deductAmount;
-
-            for (PointHistory row : earnRows) {
-                if (remainToDeduct <= 0) {
-                    break;
-                }
-                int remaining = row.getRemainingPoint() == null ? 0 : row.getRemainingPoint();
-                if (remaining > 0) {
-                    int usedHere = Math.min(remaining, remainToDeduct);
-                    row.setRemainingPoint(remaining - usedHere);
-                    remainToDeduct -= usedHere;
-                }
-            }
-
-            if (remainToDeduct > 0) {
-                throw new PointBalanceIntegrityException();
-            }
-
-            // 변경된 remainingPoint 저장
-            pointHistoryRepository.saveAll(earnRows);
-
-            // 차감 이력 생성
-            history = pointHistoryMapper.toUseOrDeductEntity(
-                    user, PointReason.ADMIN_ADJUST, amount, newTotal, null, null, null
-            );
+            pointHistoryRepository.save(history);
+            return new EarnPointResponseDto(amount, newTotal, PointReason.ADMIN_ADJUST);
         }
+
+        // 차감(-) 케이스
+        int deductAmount = Math.abs(amount);
+
+        if (latestTotal < deductAmount) {
+            throw new AdminAdjustPointNegativeBalanceException(latestTotal, amount);
+        }
+
+        // FIFO: 기존 적립된 포인트들의 remainingPoint 깎기
+        List<PointHistory> earnRows = pointHistoryRepository.findPointsForUsage(userId, LocalDateTime.now());
+
+        int remainToDeduct = deductAmount;
+
+        for (PointHistory row : earnRows) {
+            if (remainToDeduct <= 0) {
+                break;
+            }
+            int remaining = row.getRemainingPoint() == null ? 0 : row.getRemainingPoint();
+            if (remaining > 0) {
+                int usedHere = Math.min(remaining, remainToDeduct);
+                row.setRemainingPoint(remaining - usedHere);
+                remainToDeduct -= usedHere;
+            }
+        }
+
+        if (remainToDeduct > 0) {
+            throw new PointBalanceIntegrityException();
+        }
+
+        // 변경된 remainingPoint 저장
+        pointHistoryRepository.saveAll(earnRows);
+
+        // 차감 이력 생성
+        PointHistory history = pointHistoryMapper.toUseOrDeductEntity(
+                user, PointReason.ADMIN_ADJUST, amount, newTotal, null, null, null
+        );
+
         pointHistoryRepository.save(history);
 
         return new EarnPointResponseDto(amount, newTotal, PointReason.ADMIN_ADJUST);

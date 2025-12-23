@@ -29,6 +29,7 @@ import com.example.book2onandonuserservice.point.exception.UserIdMismatchExcepti
 import com.example.book2onandonuserservice.user.exception.EmailNotVerifiedException;
 import com.example.book2onandonuserservice.user.exception.GradeNameDuplicateException;
 import com.example.book2onandonuserservice.user.exception.GradeNotFoundException;
+import com.example.book2onandonuserservice.user.exception.MissingRequiredFieldException;
 import com.example.book2onandonuserservice.user.exception.PasswordMismatchException;
 import com.example.book2onandonuserservice.user.exception.SameAsOldPasswordException;
 import com.example.book2onandonuserservice.user.exception.SuperAdminDeletionException;
@@ -98,6 +99,7 @@ public class GlobalExceptionHandler {
             PointAlreadyUsedForOrderException.class,
             InsufficientPointException.class,
             InactivePointPolicyException.class,
+            MissingRequiredFieldException.class,
 
             // Auth/Other Exceptions
             PaycoInfoMissingException.class,

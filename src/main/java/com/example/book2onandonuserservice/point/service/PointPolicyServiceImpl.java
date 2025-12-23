@@ -8,7 +8,6 @@ import com.example.book2onandonuserservice.point.exception.PointPolicyNotFoundEx
 import com.example.book2onandonuserservice.point.repository.PointPolicyRepository;
 import com.example.book2onandonuserservice.point.support.pointpolicy.PointPolicyValidator;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +25,8 @@ public class PointPolicyServiceImpl implements PointPolicyService {
     @Transactional(readOnly = true)
     public List<PointPolicyResponseDto> getAllPolicies() {
         return pointPolicyRepository.findAll().stream()
-                .map(entity -> PointPolicyResponseDto.toDto(entity))
-                .collect(Collectors.toList());
+                .map(PointPolicyResponseDto::toDto)
+                .toList();
     }
 
     // 2. 정책 단건 조회
@@ -35,7 +34,7 @@ public class PointPolicyServiceImpl implements PointPolicyService {
     @Transactional(readOnly = true)
     public PointPolicyResponseDto getPolicyByName(String name) {
         return pointPolicyRepository.findByPolicyName(name)
-                .map(entity -> PointPolicyResponseDto.toDto(entity))
+                .map(PointPolicyResponseDto::toDto)
                 .orElseThrow(() -> new PointPolicyNotFoundException(name));
     }
 

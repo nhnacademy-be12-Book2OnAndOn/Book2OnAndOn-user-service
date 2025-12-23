@@ -26,11 +26,6 @@ public class PointInternalController {
     private final PointHistoryService pointHistoryService;
 
     // 1. 회원가입 적립
-//    @PostMapping("/earn/signup")
-//    public ResponseEntity<EarnPointResponseDto> earnSignupPoint(@PathVariable Long userId) {
-//        EarnPointResponseDto earnPoint = pointHistoryService.earnSignupPoint(userId);
-//        return ResponseEntity.ok(earnPoint);
-//    }
 
     // 2. 리뷰 작성 적립 (일반/사진)
     @PostMapping("/earn/review")

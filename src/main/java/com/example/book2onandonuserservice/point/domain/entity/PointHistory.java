@@ -72,8 +72,8 @@ public class PointHistory {
     @Column(name = "order_id")
     private Long orderId;
 
-    @Column(name = "return_id")
-    private Long returnId;
+    @Column(name = "refund_id")
+    private Long refundId;
 
     @Column(name = "review_id")
     private Long reviewId;

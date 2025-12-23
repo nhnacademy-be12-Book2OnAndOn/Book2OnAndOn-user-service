@@ -17,5 +17,5 @@ public class PointHistoryResponseDto {
     private PointReason pointReason;
     private Long orderId;
     private Long reviewId;
-    private Long returnId;
+    private Long refundId;
 }

@@ -55,13 +55,13 @@ public class PointHistoryValidator {
     }
 
     // 5. 반품 중복 처리 방지
-    public void validateReturnNotDuplicated(Long returnId) {
-        if (returnId == null) {
+    public void validateReturnNotDuplicated(Long refundId) {
+        if (refundId == null) {
             return;
         }
-        List<PointHistory> histories = pointHistoryRepository.findByReturnId(returnId);
+        List<PointHistory> histories = pointHistoryRepository.findByRefundId(refundId);
         if (!histories.isEmpty()) {
-            throw new ReturnAlreadyProcessedException(returnId);
+            throw new ReturnAlreadyProcessedException(refundId);
         }
     }
 

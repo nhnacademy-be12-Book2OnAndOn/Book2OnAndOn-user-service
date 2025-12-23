@@ -30,8 +30,8 @@ public interface OrderServiceClient {
     );
 
     // 반품 기준 환불(반품) 금액 조회
-    @GetMapping("/return/{returnId}/amount")
+    @GetMapping("/return/{refundId}/amount")
     Integer getReturnAmount(
-            @PathVariable("returnId") Long returnId
+            @PathVariable("refundId") Long refundId
     );
 }

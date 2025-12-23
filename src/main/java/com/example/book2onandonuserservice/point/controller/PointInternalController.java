@@ -38,23 +38,20 @@ public class PointInternalController {
             @PathVariable Long userId,
             @RequestBody EarnReviewPointInternalRequestDto requestDto
     ) {
-        validateUserIdMatch(userId, requestDto.getUserId());
-
         EarnReviewPointRequestDto dto = new EarnReviewPointRequestDto();
         dto.setUserId(userId);
-        dto.setReviewId(dto.getReviewId());
-        dto.setHasImage(dto.isHasImage());
+        dto.setReviewId(requestDto.getReviewId());
+        dto.setHasImage(requestDto.isHasImage());
 
         return ResponseEntity.ok(pointHistoryService.earnReviewPoint(dto));
     }
 
     // 3. 도서 결제 적립 (적립률)
+    @PostMapping("/earn/order")
     public ResponseEntity<EarnPointResponseDto> earnOrderPoint(
             @PathVariable Long userId,
             @RequestBody EarnOrderPointInternalRequestDto requestDto
     ) {
-        validateUserIdMatch(userId, requestDto.getUserId());
-
         EarnOrderPointRequestDto dto = new EarnOrderPointRequestDto();
         dto.setUserId(userId);
         dto.setOrderId(requestDto.getOrderId());
@@ -70,43 +67,30 @@ public class PointInternalController {
             @PathVariable Long userId,
             @RequestBody UsePointInternalRequestDto requestDto
     ) {
-        validateUserIdMatch(userId, requestDto.getUserId());
-
         UsePointRequestDto dto = new UsePointRequestDto();
         dto.setUserId(userId);
-        dto.setOrderId(dto.getOrderId());
-        dto.setUseAmount(dto.getUseAmount());
-        dto.setAllowedMaxUseAmount(dto.getAllowedMaxUseAmount());
+        dto.setOrderId(requestDto.getOrderId());
+        dto.setUseAmount(requestDto.getUseAmount());
+        dto.setAllowedMaxUseAmount(requestDto.getAllowedMaxUseAmount());
 
         EarnPointResponseDto earnPoint = pointHistoryService.usePoint(dto);
         return ResponseEntity.ok(earnPoint);
     }
 
-    // 5. 포인트 반환 (결제취소/반품)
+    // 5. 포인트 반환 (반품만) -> order-service에서 “취소/반품을 refundPoint 하나로 몰아서 호출”하면 멱등/정합성이 깨질 수 있다.
+    // -> 결제 롤백 포인트 반환(cancel)이 따로 있음.
     @PostMapping("/refund")
     public ResponseEntity<EarnPointResponseDto> refundPoint(
             @PathVariable Long userId,
             @RequestBody RefundPointInternalRequestDto requestDto
     ) {
-        validateUserIdMatch(userId, requestDto.getUserId());
-
         RefundPointRequestDto dto = new RefundPointRequestDto();
         dto.setUserId(userId);
-        dto.setOrderId(dto.getOrderId());
-        dto.setReturnId(dto.getReturnId());
-        dto.setUsedPoint(dto.getUsedPoint());
-        dto.setReturnAmount(dto.getReturnAmount());
+        dto.setOrderId(requestDto.getOrderId());
+        dto.setRefundId(requestDto.getRefundId());
+        dto.setUsedPoint(requestDto.getUsedPoint());
+        dto.setRefundAmount(requestDto.getRefundAmount());
 
         return ResponseEntity.ok(pointHistoryService.refundPoint(dto));
     }
-
-    private void validateUserIdMatch(Long pathUserId, Long bodyUserId) {
-        if (bodyUserId == null) {
-            throw new IllegalArgumentException("body userId는 필수입니다.");
-        }
-        if (!pathUserId.equals(bodyUserId)) {
-            throw new IllegalArgumentException("path userId와 body userId가 일치하지 않습니다.");
-        }
-    }
-
 }

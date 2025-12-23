@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.point.support.pointhistory;
 
 import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointReason;
+import com.example.book2onandonuserservice.point.exception.InvalidAdminAdjustPointException;
 import com.example.book2onandonuserservice.point.exception.OrderAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.exception.PointAlreadyUsedForOrderException;
 import com.example.book2onandonuserservice.point.exception.PointRangeExceededException;
@@ -55,13 +56,13 @@ public class PointHistoryValidator {
     }
 
     // 5. 반품 중복 처리 방지
-    public void validateReturnNotDuplicated(Long returnId) {
-        if (returnId == null) {
+    public void validateReturnNotDuplicated(Long refundId) {
+        if (refundId == null) {
             return;
         }
-        List<PointHistory> histories = pointHistoryRepository.findByReturnId(returnId);
+        List<PointHistory> histories = pointHistoryRepository.findByRefundId(refundId);
         if (!histories.isEmpty()) {
-            throw new ReturnAlreadyProcessedException(returnId);
+            throw new ReturnAlreadyProcessedException(refundId);
         }
     }
 
@@ -91,4 +92,12 @@ public class PointHistoryValidator {
         return pointHistoryRepository
                 .findAllRemianingPoints(userId);
     }
+
+    // 9. 필드와 기준값(0) 비교
+    public void validateAdjustAmountNotZero(int amount) {
+        if (amount == 0) {
+            throw new InvalidAdminAdjustPointException("조정 포인트는 0일 수 없습니다.");
+        }
+    }
+
 }

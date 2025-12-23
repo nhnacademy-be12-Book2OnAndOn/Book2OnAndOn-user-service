@@ -6,7 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EarnOrderPointInternalRequestDto {
-    private Long userId;
     private Long orderId;
     private Integer pureAmount;
     private Double pointAddRate;

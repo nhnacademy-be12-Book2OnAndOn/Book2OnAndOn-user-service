@@ -6,7 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UsePointInternalRequestDto {
-    private Long userId;
     private Long orderId;
     private Integer useAmount;
     private Integer allowedMaxUseAmount;

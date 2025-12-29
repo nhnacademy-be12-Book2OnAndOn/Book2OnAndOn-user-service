@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.user.service.impl;
 
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
@@ -47,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final UserGradeRepository userGradeRepository;
     private final PointHistoryService pointHistoryService;
     private final RedisUtil redisUtil;
+    private final EncryptionUtils encryptionUtils;
 
     private Users findUserOrThrow(Long userId) {
         return usersRepository.findById(userId)
@@ -66,7 +68,9 @@ public class UserServiceImpl implements UserService {
         Users user = findUserOrThrow(userId);
 
         if (!Objects.equals(user.getEmail(), request.email())) {
-            if (usersRepository.findByEmail(request.email()).isPresent()) {
+            String newEmailHash = encryptionUtils.hash(request.email().trim());
+
+            if (usersRepository.findByEmailHash(newEmailHash).isPresent()) {
                 throw new UserEmailDuplicateException();
             }
 
@@ -85,9 +89,12 @@ public class UserServiceImpl implements UserService {
             throw new UserNicknameDuplicationException();
         }
 
+        String emailHash = encryptionUtils.hash(request.email().trim());
+
         user.updateProfile(
                 request.name(),
                 request.email(),
+                emailHash,
                 request.nickname(),
                 request.phone()
         );
@@ -116,7 +123,12 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(Long userId, String reason) {
         Users user = findUserOrThrow(userId);
-        user.withDraw(reason);
+
+        String withdrawnEmail = "withdrawn_" + userId + "@deleted.com";
+
+        String withdrawnEmailHash = encryptionUtils.hash(withdrawnEmail);
+
+        user.withDraw(reason, withdrawnEmail, withdrawnEmailHash);
     }
 
     @Override
@@ -168,7 +180,10 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyWithdrawnException();
         }
 
-        user.withDraw("[관리자 처리] " + reason);
+        String withdrawnEmail = "withdrawn_" + userId + "@deleted.com";
+        String withdrawnHash = encryptionUtils.hash(withdrawnEmail);
+
+        user.withDraw("[관리자 처리] " + reason, withdrawnHash);
     }
 
     @Override

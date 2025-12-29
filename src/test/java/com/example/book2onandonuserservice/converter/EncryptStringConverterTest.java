@@ -3,11 +3,11 @@ package com.example.book2onandonuserservice.converter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.book2onandonuserservice.global.converter.EncryptStringConverter;
+import com.example.book2onandonuserservice.global.exception.DecryptionException;
 import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ class EncryptStringConverterTest {
 
     // convertToDatabaseColumn() 테스트
     @Test
-    void convertToDatabaseColumn_success() throws Exception {
+    void convertToDatabaseColumn_success() {
         String input = "hello";
         String encrypted = "ENCRYPTED";
 
@@ -52,20 +52,9 @@ class EncryptStringConverterTest {
         assertNull(converter.convertToDatabaseColumn("   "));
     }
 
-    @Test
-    void convertToDatabaseColumn_encryptException() throws Exception {
-        when(encryptionUtils.encrypt("test"))
-                .thenThrow(new RuntimeException("암호화오류"));
-
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> converter.convertToDatabaseColumn("test"));
-
-        assertTrue(ex.getMessage().contains("암호화실패"));
-    }
-
     // convertToEntityAttribute() 테스트
     @Test
-    void convertToEntityAttribute_success() throws Exception {
+    void convertToEntityAttribute_success() {
         String encrypted = "ENCRYPTED";
         String decrypted = "hello";
 
@@ -78,12 +67,12 @@ class EncryptStringConverterTest {
     }
 
     @Test
-    void convertToEntityAttribute_decryptExceptionReturnsNull() throws Exception {
+    void convertToEntityAttribute_decryptExceptionShouldThrow() {
         when(encryptionUtils.decrypt("BAD"))
-                .thenThrow(new RuntimeException("복호화 실패"));
+                .thenThrow(new DecryptionException("복호화 중 오류가 발생했습니다."));
 
-        String result = converter.convertToEntityAttribute("BAD");
-
-        assertNull(result);
+        assertThrows(DecryptionException.class, () -> {
+            converter.convertToEntityAttribute("BAD");
+        });
     }
 }

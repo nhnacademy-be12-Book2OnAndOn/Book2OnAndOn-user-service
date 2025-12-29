@@ -37,3 +37,5 @@ src/main/resources/application-local.properties
 
 
 .env
+application-local.properties
+.DS_Store

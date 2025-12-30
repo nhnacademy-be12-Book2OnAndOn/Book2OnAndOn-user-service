@@ -58,7 +58,7 @@ public class BirthdayCouponScheduler {
             List<Long> ids = idSlice.getContent();
             for (Long userId : ids) {
                 rabbitTemplate.convertAndSend(
-                        RabbitConfig.EXCHANGE,
+                        RabbitConfig.USER_EXCHANGE,
                         RabbitConfig.ROUTING_KEY_BIRTHDAY,
                         userId
                 );

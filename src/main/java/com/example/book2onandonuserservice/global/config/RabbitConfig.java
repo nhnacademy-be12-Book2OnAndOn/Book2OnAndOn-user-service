@@ -13,13 +13,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    public static final String EXCHANGE = "book2.dev.user.exchange";
+    public static final String USER_EXCHANGE = "book2.dev.user.exchange";
+    public static final String ORDER_EXCHANGE = "book2.dev.order-payment.exchange";
+
     public static final String ROUTING_KEY_WELCOME = "coupon.welcome";
     public static final String ROUTING_KEY_BIRTHDAY = "coupon.birthday"; //이거 추가
 
-    public static final String ORDER_EVENT_EXCHANGE = "order.event.exchange"; // Exchange
-    public static final String ORDER_CANCELED_ROUTING_KEY = "order.canceled"; // Routing Key
-    public static final String POINT_ORDER_CANCELED_QUEUE = "point.order.canceled.queue"; // Queue
+    public static final String ORDER_CANCELED_ROUTING_KEY = "point.cancel"; // Routing Key
+    public static final String POINT_ORDER_CANCELED_QUEUE = "point.cancel.queue"; // Queue
 
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -29,13 +30,13 @@ public class RabbitConfig {
     // 쿠폰
     @Bean
     public DirectExchange exchange() {
-        return new DirectExchange(EXCHANGE);
+        return new DirectExchange(USER_EXCHANGE);
     }
 
     // 주문/결제 이벤트
     @Bean
     public DirectExchange orderEventExchange() {
-        return new DirectExchange(ORDER_EVENT_EXCHANGE, true, false);
+        return new DirectExchange(ORDER_EXCHANGE, true, false);
     }
 
     @Bean

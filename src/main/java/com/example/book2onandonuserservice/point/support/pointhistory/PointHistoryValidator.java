@@ -5,7 +5,6 @@ import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.exception.InvalidAdminAdjustPointException;
 import com.example.book2onandonuserservice.point.exception.OrderAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.exception.PointAlreadyUsedForOrderException;
-import com.example.book2onandonuserservice.point.exception.PointRangeExceededException;
 import com.example.book2onandonuserservice.point.exception.ReturnAlreadyProcessedException;
 import com.example.book2onandonuserservice.point.exception.ReviewAlreadyRewardedException;
 import com.example.book2onandonuserservice.point.repository.PointHistoryRepository;
@@ -27,12 +26,12 @@ public class PointHistoryValidator {
         }
     }
 
-    // 2. 사용 가능 범위 검증 (ex. 주문금액-쿠폰 이하인지 등)
-    public void validatePointRange(int useAmount, int maxUseAmount) {
-        if (useAmount > maxUseAmount) {
-            throw new PointRangeExceededException(maxUseAmount);
-        }
-    }
+    // 2. 사용 가능 범위 검증 (ex. 주문금액-쿠폰 이하인지 등) -> 주문에서 할거임. 빼.
+//    public void validatePointRange(int useAmount, int maxUseAmount) {
+//        if (useAmount > maxUseAmount) {
+//            throw new PointRangeExceededException(maxUseAmount);
+//        }
+//    }
 
     // 3. 주문 중복 적립 방지
     public void validateOrderEarnNotDuplicated(Long orderId) {

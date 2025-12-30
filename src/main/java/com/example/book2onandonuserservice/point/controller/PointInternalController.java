@@ -66,7 +66,6 @@ public class PointInternalController {
         dto.setUserId(userId);
         dto.setOrderId(requestDto.getOrderId());
         dto.setUseAmount(requestDto.getUseAmount());
-        dto.setAllowedMaxUseAmount(requestDto.getAllowedMaxUseAmount());
 
         EarnPointResponseDto earnPoint = pointHistoryService.usePoint(dto);
         return ResponseEntity.ok(earnPoint);

@@ -53,7 +53,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     private static final String FIELD_ORDER_ID = "orderId";
     private static final String FIELD_REFUND_ID = "refundId";
     private static final String FIELD_PURE_AMOUNT = "pureAmount";
-    private static final String FIELD_GRADE_RATE = "pointAddRate";
     private static final String FIELD_USE_AMOUNT = "useAmount";
     private static final String FIELD_ALLOWED_MAX_USE_AMOUNT = "allowedMaxUseAmount";
 
@@ -292,7 +291,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         Long userId = dto.getUserId();
         Long orderId = dto.getOrderId();
         Integer useAmountObj = dto.getUseAmount();
-        Integer allowedMaxObj = dto.getAllowedMaxUseAmount(); // 주문에서 받아야 할 듯 : 최대 보유 포인트 or 쿠폰 할인 제외한 최대 금액
 
         if (userId == null) {
             throw new MissingRequiredFieldException(FIELD_USER_ID);
@@ -303,16 +301,12 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         if (useAmountObj == null) {
             throw new MissingRequiredFieldException(FIELD_USE_AMOUNT);
         }
-        if (allowedMaxObj == null) {
-            throw new MissingRequiredFieldException(FIELD_ALLOWED_MAX_USE_AMOUNT);
-        }
 
         int useAmount = useAmountObj;
-        int allowedMaxUseAmount = allowedMaxObj;
 
         // 1) 검증
         // 주문에서 허용한 최대 사용 가능 포인트 범위 검증
-        pointHistoryValidator.validatePointRange(useAmount, allowedMaxUseAmount);
+//        pointHistoryValidator.validatePointRange(useAmount, allowedMaxUseAmount);
         // 양수 검증
         pointHistoryValidator.validatePositiveAmount(useAmount, "사용 포인트는 0보다 커야 합니다.");
         // 같은 주문에 대한 중복 사용 방지

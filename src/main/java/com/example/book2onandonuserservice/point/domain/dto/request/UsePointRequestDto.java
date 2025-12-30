@@ -18,6 +18,4 @@ public class UsePointRequestDto {
     private Long orderId;
     @NotNull
     private Integer useAmount; // 사용할 포인트
-    @NotNull
-    private Integer allowedMaxUseAmount; // 최대 가용 가능 포인트
 }

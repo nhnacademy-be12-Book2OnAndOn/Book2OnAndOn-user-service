@@ -33,7 +33,7 @@ public class UserGradeScheduler {
     private final OrderServiceClient orderServiceClient;
     private final EntityManager entityManager;
 
-    @Scheduled(cron = "0 * * * * *") // 1·4·7·10월 1일 새벽 4시
+    @Scheduled(cron = "0 0 4 1 1,4,7,10 *") // 1·4·7·10월 1일 새벽 4시
     @SchedulerLock(name = "user_grade_task", lockAtLeastFor = "30s", lockAtMostFor = "10m")
     @Transactional
     public void calculateQuarterlyGrades() {

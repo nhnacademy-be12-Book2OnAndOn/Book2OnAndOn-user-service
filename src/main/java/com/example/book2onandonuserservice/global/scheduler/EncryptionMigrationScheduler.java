@@ -21,7 +21,7 @@ public class EncryptionMigrationScheduler {
     private final TransactionTemplate transactionTemplate; // 트랜잭션 수동 제어를 위해 주입
     private static final int BATCH_SIZE = 100;
 
-    @Scheduled(cron = "0 45 14 * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @SchedulerLock(name = "encryption_migration_task", lockAtLeastFor = "30s", lockAtMostFor = "10m")
     public void runMigrationTask() {
         log.info("[Encryption Migration] 배치 작업을 시작합니다.");

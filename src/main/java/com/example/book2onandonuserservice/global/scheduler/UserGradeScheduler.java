@@ -42,8 +42,7 @@ public class UserGradeScheduler {
 
         LocalDate now = LocalDate.now();
         LocalDate fromDate = now.minusMonths(3).withDayOfMonth(1);
-        LocalDate toDate = now.minusDays(1);
-        log.info("집계 대상 기간: {} ~ {}", fromDate, toDate);
+        log.info("집계 대상 기간: {} ~ {}", fromDate, now);
 
         List<UserGrade> gradePolicies = userGradeRepository.findAllByOrderByGradeCutlineDesc();
 
@@ -65,7 +64,7 @@ public class UserGradeScheduler {
             log.info("등급 산정 처리 페이지: {}, 사용자 수: {}", page, activeUsersPage.getNumberOfElements());
 
             for (Users user : activeUsersPage.getContent()) {
-                updatedCount += processUserGradeUpdate(user, gradePolicies, fromDate, toDate);
+                updatedCount += processUserGradeUpdate(user, gradePolicies, fromDate, now);
             }
 
             entityManager.flush();

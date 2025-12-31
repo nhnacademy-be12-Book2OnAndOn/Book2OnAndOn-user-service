@@ -1,80 +1,187 @@
 package com.example.book2onandonuserservice.global.util;
 
+import com.example.book2onandonuserservice.global.config.EncryptionProperties;
+import com.example.book2onandonuserservice.global.exception.CryptoConfigurationException;
+import com.example.book2onandonuserservice.global.exception.DecryptionException;
+import com.example.book2onandonuserservice.global.exception.EncryptionException;
+import com.example.book2onandonuserservice.global.exception.HashingException;
+import jakarta.annotation.PostConstruct;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class EncryptionUtils {
 
     private static final String ALG = "AES/GCM/NoPadding";
+    private static final String HMAC_ALG = "HmacSHA256";
     private static final int IV_SIZE = 12;
     private static final int TAG_LENGTH_BIT = 128;
+    private static final String SEPARATOR = ":";
 
-    private final SecretKeySpec keySpec;
+    private final EncryptionProperties properties;
+    private Map<String, SecretKey> secretKeyMap;
 
-    public EncryptionUtils(@Value("${encryption.secret-key}") String key) {
-        this.keySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    @PostConstruct
+    public void init() {
+        secretKeyMap = new HashMap<>();
+        Map<String, String> keyConfig = properties.getKeys();
+        String activeVersion = properties.getActiveVersion();
+
+        if (keyConfig == null || keyConfig.isEmpty()) {
+            throw new CryptoConfigurationException(
+                    "암호화 키 설정(encryption.keys)이 존재하지 않습니다. application.properties를 확인해주세요.");
+        }
+
+        for (Map.Entry<String, String> entry : keyConfig.entrySet()) {
+            String version = entry.getKey();
+            String keyStr = entry.getValue();
+
+            if (keyStr.getBytes(StandardCharsets.UTF_8).length != 32) {
+                log.warn("경고: 키 버전({})의 길이가 32바이트(AES-256)가 아닙니다.", version);
+            }
+            secretKeyMap.put(version, new SecretKeySpec(keyStr.getBytes(StandardCharsets.UTF_8), "AES"));
+        }
+
+        if (!secretKeyMap.containsKey(activeVersion)) {
+            throw new CryptoConfigurationException("설정된 active-version (" + activeVersion + ")에 해당하는 암호화 키가 없습니다.");
+        }
+        log.info("EncryptionUtils 초기화 완료. Active Version: {}", activeVersion);
     }
 
-    // 암호화
-    public String encrypt(String text) throws Exception {
+    public String encrypt(String text) {
         if (text == null) {
             return null;
         }
 
-        // 랜덤 IV 생성
-        byte[] iv = new byte[IV_SIZE];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(iv);
+        try {
+            byte[] iv = new byte[IV_SIZE];
+            SECURE_RANDOM.nextBytes(iv);
 
-        // Cipher 초기화
-        Cipher cipher = Cipher.getInstance(ALG);
-        GCMParameterSpec gcmSpec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
+            String activeVersion = properties.getActiveVersion();
+            SecretKey key = secretKeyMap.get(activeVersion);
 
-        // 암호화 실행
-        byte[] encrypted = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
+            Cipher cipher = Cipher.getInstance(ALG);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec);
 
-        // IV + 암호문을 Base64로 합쳐 저장
-        ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encrypted.length);
-        byteBuffer.put(iv);
-        byteBuffer.put(encrypted);
+            byte[] encrypted = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
 
-        return Base64.getEncoder().encodeToString(byteBuffer.array());
+            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + encrypted.length);
+            byteBuffer.put(iv);
+            byteBuffer.put(encrypted);
+
+            String encodedData = Base64.getEncoder().encodeToString(byteBuffer.array());
+
+            return activeVersion + SEPARATOR + encodedData;
+
+        } catch (Exception e) {
+            throw new EncryptionException("데이터 암호화 중 오류가 발생했습니다.", e);
+        }
     }
 
-    // 복호화
-    public String decrypt(String cipherText) throws Exception {
+    public String decrypt(String cipherText) {
         if (cipherText == null) {
             return null;
         }
 
-        byte[] decoded = Base64.getDecoder().decode(cipherText);
+        try {
+            String version;
+            String actualCipherBase64;
 
-        // 저장된 IV 추출
-        ByteBuffer byteBuffer = ByteBuffer.wrap(decoded);
-        byte[] iv = new byte[IV_SIZE];
-        byteBuffer.get(iv);
+            if (cipherText.contains(SEPARATOR)) {
+                String[] parts = cipherText.split(SEPARATOR, 2);
+                version = parts[0];
+                actualCipherBase64 = parts[1];
+            } else {
+                version = "v1";
+                actualCipherBase64 = cipherText;
+            }
 
-        // 암호문 추출
-        byte[] encrypted = new byte[decoded.length - IV_SIZE];
-        byteBuffer.get(encrypted);
+            SecretKey key = secretKeyMap.get(version);
+            if (key == null) {
+                throw new DecryptionException("알 수 없는 암호화 키 버전입니다: " + version);
+            }
 
-        // 복호화 초기화
-        Cipher cipher = Cipher.getInstance(ALG);
-        GCMParameterSpec gcmSpec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
-        cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec);
+            byte[] decoded = Base64.getDecoder().decode(actualCipherBase64);
+            ByteBuffer byteBuffer = ByteBuffer.wrap(decoded);
 
-        // 복호화 실행
-        byte[] decrypted = cipher.doFinal(encrypted);
+            byte[] iv = new byte[IV_SIZE];
+            byteBuffer.get(iv);
 
-        return new String(decrypted, StandardCharsets.UTF_8);
+            byte[] encrypted = new byte[decoded.length - IV_SIZE];
+            byteBuffer.get(encrypted);
+
+            Cipher cipher = Cipher.getInstance(ALG);
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(TAG_LENGTH_BIT, iv);
+            cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
+
+            byte[] decrypted = cipher.doFinal(encrypted);
+
+            return new String(decrypted, StandardCharsets.UTF_8);
+
+        } catch (DecryptionException e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            throw new DecryptionException("복호화 데이터 형식이 잘못되었습니다 (Base64 등).", e);
+        } catch (Exception e) {
+            throw new DecryptionException("데이터 복호화 중 치명적인 오류가 발생했습니다.", e);
+        }
+    }
+
+    public boolean needsReEncryption(String cipherText) {
+        if (cipherText == null || cipherText.isEmpty()) {
+            return false;
+        }
+        String activeVersion = properties.getActiveVersion();
+        return !cipherText.startsWith(activeVersion + SEPARATOR);
+    }
+
+    public String hash(String text) {
+        if (text == null) {
+            return null;
+        }
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALG);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(
+                    properties.getHashSecret().getBytes(StandardCharsets.UTF_8),
+                    HMAC_ALG
+            );
+            mac.init(secretKeySpec);
+
+            byte[] encodedHash = mac.doFinal(text.getBytes(StandardCharsets.UTF_8));
+            return bytesToHex(encodedHash);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new HashingException("해시 값 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }

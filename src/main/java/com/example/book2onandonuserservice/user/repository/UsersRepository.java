@@ -23,7 +23,7 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     Optional<Users> findByUserLoginId(String userLoginId);
 
     //이메일로 사용자 찾기
-    Optional<Users> findByEmail(String email);
+    Optional<Users> findByEmailHash(String emailHash);
 
     //닉네임으로 사용자 찾기
     Optional<Users> findByNickname(String nickname);
@@ -34,10 +34,10 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     List<Users> findAllByStatus(Status status);
 
     //이름 + 이메일로 찾기 (아이디 찾기)
-    Optional<Users> findByNameAndEmail(String name, String email);
+    Optional<Users> findByNameAndEmailHash(String name, String emailHash);
 
     //아이디 + 이메일로 찾기 (비밀번호 찾기)
-    Optional<Users> findByUserLoginIdAndEmail(String userLoginId, String email);
+    Optional<Users> findByUserLoginIdAndEmailHash(String userLoginId, String emailHash);
 
     @Query("SELECT u.userId FROM Users u WHERE MONTH(u.birth) = :month AND u.role = :role AND u.status IN :statuses")
     Slice<Long> findIdsByBirthMonth(@Param("month") int month, @Param("role") Role role,

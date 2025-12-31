@@ -2,6 +2,7 @@ package com.example.book2onandonuserservice.auth.service;
 
 import com.example.book2onandonuserservice.address.exception.InvalidVerificationCodeException;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -26,12 +27,14 @@ public class AuthVerificationService {
     private final RedisUtil redisUtil;
     private final ApplicationEventPublisher eventPublisher;
     private static final SecureRandom secureRandom = new SecureRandom();
+    private final EncryptionUtils encryptionUtils;
 
     // 회원가입용 이메일 인증번호 발송
     public void sendVerificationCode(String email) {
         String cleanEmail = email.trim();
+        String emailHash = encryptionUtils.hash(cleanEmail);
 
-        if (usersRepository.findByEmail(cleanEmail).isPresent()) {
+        if (usersRepository.findByEmailHash(emailHash).isPresent()) {
             throw new UserEmailDuplicateException();
         }
 
@@ -69,8 +72,9 @@ public class AuthVerificationService {
     // 휴면 해제용 인증번호 발송
     public void sendDormantVerificationCode(String email) {
         String cleanEmail = email.trim();
+        String emailHash = encryptionUtils.hash(cleanEmail);
 
-        Users user = usersRepository.findByEmail(cleanEmail)
+        Users user = usersRepository.findByEmailHash(emailHash)
                 .orElseThrow(() -> new UserNotFoundException(0L));
 
         if (user.getStatus() != Status.DORMANT) {
@@ -102,7 +106,9 @@ public class AuthVerificationService {
 
         redisUtil.deleteData(key);
 
-        Users user = usersRepository.findByEmail(email)
+        String emailHash = encryptionUtils.hash(email);
+
+        Users user = usersRepository.findByEmailHash(emailHash)
                 .orElseThrow(() -> new UserNotFoundException(0L));
 
         if (user.getStatus() == Status.DORMANT) {

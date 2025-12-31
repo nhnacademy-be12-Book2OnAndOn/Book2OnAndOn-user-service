@@ -40,7 +40,7 @@ public class AuthController {
         UserResponseDto response = authService.signUp(request);
 
         rabbitTemplate.convertAndSend(
-                RabbitConfig.EXCHANGE,
+                RabbitConfig.USER_EXCHANGE,
                 RabbitConfig.ROUTING_KEY_WELCOME,
                 new WelcomeMessage(response.userId())
         );

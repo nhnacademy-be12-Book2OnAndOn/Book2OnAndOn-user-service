@@ -35,15 +35,13 @@ public class OrderCanceledEventConsumer {
         try {
             pointHistoryService.useCancel(orderId, userId);
 
-            log.info("주문취소 이벤트 처리 성공: eventId={}, orderId={}, userId={}",
-                    event.eventId(), orderId, userId);
+            log.info("주문취소 이벤트 처리 성공: orderId={}, userId={}", orderId, userId);
         } catch (Exception e) {
             // 여기서 실패하면 “결제는 성공했는데 포인트는 안 깎임” 문제가 생길 수 있음.
             // 따라서 결제 서비스/오케스트레이션 레벨에서
             // (1) 결제 확정 전에 포인트 차감 성공을 선조건으로 두거나
             // (2) 실패 시 보정 프로세스(관리자/배치)를 둬야 함.
-            log.error("주문취소 이벤트 처리 실패: eventId={}, orderId={}, userId={}, msg={}",
-                    event.eventId(), orderId, userId, e.getMessage(), e);
+            log.error("주문취소 이벤트 처리 실패: orderId={}, userId={}, msg={}", orderId, userId, e.getMessage(), e);
 
             // 재시도를 원하면 throw 해서 메시지가 다시 들어오게(설정 필요)
             throw e;

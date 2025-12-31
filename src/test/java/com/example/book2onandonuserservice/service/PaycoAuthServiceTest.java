@@ -20,6 +20,7 @@ import com.example.book2onandonuserservice.auth.repository.jpa.UserAuthRepositor
 import com.example.book2onandonuserservice.auth.service.AuthTokenService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -59,6 +60,8 @@ class PaycoAuthServiceTest {
     private PointHistoryService pointHistoryService;
     @Mock
     private AuthTokenService authTokenService;
+    @Mock
+    private EncryptionUtils encryptionUtils;
 
     private PaycoLoginRequestDto loginRequest;
     private PaycoTokenResponse tokenResponse;
@@ -108,17 +111,16 @@ class PaycoAuthServiceTest {
     @Test
     @DisplayName("로그인 성공 - 이미 연동된 계정 (ACTIVE) + 정보 동기화(Sync) 확인")
     void login_Success_ExistingAuth() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
-        // [변경] 생일을 "0101" (MMdd) 포맷으로 설정
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "홍길동",
                 "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
+        given(encryptionUtils.hash("test@test.com")).willReturn("hashed_test@test.com");
+
         Users user = new Users();
         user.initSocialAccount("홍길동", "홍길동");
-        // 초기 상태: 생일 null, 전화번호 null 이라고 가정
 
         UserAuth existingAuth = UserAuth.builder().user(user).build();
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(
@@ -127,10 +129,8 @@ class PaycoAuthServiceTest {
         TokenResponseDto expectedToken = new TokenResponseDto("jwt-access", "jwt-refresh", "Bearer", 3600L);
         given(authTokenService.issueToken(user)).willReturn(expectedToken);
 
-        // When
         TokenResponseDto result = paycoAuthService.login(loginRequest);
 
-        // Then
         assertThat(result.accessToken()).isEqualTo("jwt-access");
         verify(usersRepository, never()).save(any());
 
@@ -141,13 +141,11 @@ class PaycoAuthServiceTest {
     @Test
     @DisplayName("로그인 실패 - PAYCO 서버 응답 실패")
     void login_Fail_PaycoServerException() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
         PaycoMemberResponse memberResponse = createMockMemberResponse(false, null, null, null, null, null);
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
-        // When & Then
         assertThatThrownBy(() -> paycoAuthService.login(loginRequest))
                 .isInstanceOf(PaycoServerException.class)
                 .hasMessageContaining("PAYCO 로그인 실패");
@@ -156,10 +154,8 @@ class PaycoAuthServiceTest {
     @Test
     @DisplayName("로그인 실패 - PAYCO 필수 정보(이메일/이름) 누락")
     void login_Fail_PaycoInfoMissing() {
-        // Given
         given(paycoClient.getToken(anyString(), anyString(), anyString(), anyString())).willReturn(tokenResponse);
 
-        // 이메일 없음
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", null, "홍길동", "01012345678",
                 "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
@@ -179,8 +175,11 @@ class PaycoAuthServiceTest {
                 "821012345678", "1231");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
+        String emailHash = "hashed_new@test.com";
+        given(encryptionUtils.hash("new@test.com")).willReturn(emailHash);
+
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.empty());
-        given(usersRepository.findByEmail("new@test.com")).willReturn(Optional.empty());
+        given(usersRepository.findByEmailHash(emailHash)).willReturn(Optional.empty());
 
         given(userGradeRepository.findByGradeName(GradeName.BASIC)).willReturn(Optional.of(basicGrade));
 
@@ -213,23 +212,24 @@ class PaycoAuthServiceTest {
                 "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
 
+        String emailHash = "hashed_exist@test.com";
+        given(encryptionUtils.hash("exist@test.com")).willReturn(emailHash);
+
         given(userAuthRepository.findByProviderAndProviderUserId("payco", "payco-id")).willReturn(Optional.empty());
 
         Users existingUser = new Users();
         existingUser.initLocalAccount("localId", "pw", "기존", "nick");
-        given(usersRepository.findByEmail("exist@test.com")).willReturn(Optional.of(existingUser));
+
+        given(usersRepository.findByEmailHash(emailHash)).willReturn(Optional.of(existingUser));
 
         TokenResponseDto expectedToken = new TokenResponseDto("jwt-access", "jwt-refresh", "Bearer", 3600L);
         given(authTokenService.issueToken(existingUser)).willReturn(expectedToken);
 
-        // When
         paycoAuthService.login(loginRequest);
 
-        // Then
         verify(userAuthRepository).save(any(UserAuth.class));
         verify(usersRepository, never()).save(any(Users.class));
 
-        // [추가 검증] 동기화 확인
         assertThat(existingUser.getBirth()).isEqualTo(LocalDate.of(2020, 1, 1));
     }
 
@@ -240,6 +240,8 @@ class PaycoAuthServiceTest {
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "휴면",
                 "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
+
+        given(encryptionUtils.hash("test@test.com")).willReturn("hashed_test@test.com");
 
         Users dormantUser = new Users();
         dormantUser.initLocalAccount("dormantId", "password", "휴면", "nick");
@@ -260,6 +262,8 @@ class PaycoAuthServiceTest {
         PaycoMemberResponse memberResponse = createMockMemberResponse(true, "payco-id", "test@test.com", "탈퇴",
                 "01012345678", "0101");
         given(paycoClient.getMemberInfo(any(URI.class), anyString(), anyString())).willReturn(memberResponse);
+
+        given(encryptionUtils.hash("test@test.com")).willReturn("hashed_test@test.com");
 
         Users withdrawnUser = new Users();
         withdrawnUser.initLocalAccount("withdrawnId", "password", "탈퇴", "nick");

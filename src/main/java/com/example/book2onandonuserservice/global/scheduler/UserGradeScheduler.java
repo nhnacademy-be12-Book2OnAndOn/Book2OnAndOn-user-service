@@ -42,7 +42,7 @@ public class UserGradeScheduler {
 
         LocalDate now = LocalDate.now();
         LocalDate fromDate = now.minusMonths(3).withDayOfMonth(1);
-        LocalDate toDate = now.minusDays(1);
+        LocalDate toDate = now.minusDays(0);
         log.info("집계 대상 기간: {} ~ {}", fromDate, toDate);
 
         List<UserGrade> gradePolicies = userGradeRepository.findAllByOrderByGradeCutlineDesc();

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import com.example.book2onandonuserservice.address.exception.InvalidVerificationCodeException;
 import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -43,13 +44,18 @@ class AuthVerificationServiceTest {
     private RedisUtil redisUtil;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private EncryptionUtils encryptionUtils; // [추가] Mock 주입
 
     // 회원가입용 인증번호 발송 테스트
     @Test
     @DisplayName("인증번호 발송 성공 - 중복되지 않은 이메일")
     void sendVerificationCode_success() {
         String email = "test@test.com";
-        given(usersRepository.findByEmail(email)).willReturn(Optional.empty());
+        String hash = "hashed_test@test.com";
+
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.empty());
 
         verificationService.sendVerificationCode(email);
 
@@ -61,7 +67,10 @@ class AuthVerificationServiceTest {
     @DisplayName("인증번호 발송 실패 - 이미 가입된 이메일")
     void sendVerificationCode_duplicateEmail() {
         String email = "duplicate@test.com";
-        given(usersRepository.findByEmail(email)).willReturn(Optional.of(new Users()));
+        String hash = "hashed_duplicate";
+
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.of(new Users()));
 
         assertThatThrownBy(() -> verificationService.sendVerificationCode(email))
                 .isInstanceOf(UserEmailDuplicateException.class);
@@ -69,11 +78,10 @@ class AuthVerificationServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
-    // 인증번호 검증 테스트
+    // 인증번호 검증 테스트 (Redis만 사용하므로 EncryptionUtils 영향 없음)
     @Test
     @DisplayName("인증번호 검증 성공 - 코드가 일치함")
     void verifyEmail_success() {
-        // Given
         String email = "test@test.com";
         String code = "123456";
         String key = RedisKeyPrefix.EMAIL_CODE.buildKey(email);
@@ -90,7 +98,6 @@ class AuthVerificationServiceTest {
     @Test
     @DisplayName("인증번호 검증 실패 - 코드가 불일치하거나 없음")
     void verifyEmail_fail() {
-        // Given
         String email = "test@test.com";
         String code = "123456";
         String key = RedisKeyPrefix.EMAIL_CODE.buildKey(email);
@@ -109,10 +116,13 @@ class AuthVerificationServiceTest {
     @DisplayName("휴면 인증번호 발송 성공 - 휴면 계정인 경우")
     void sendDormantVerificationCode_success() {
         String email = "dormant@test.com";
+        String hash = "hashed_dormant";
+
         Users user = new Users();
         ReflectionTestUtils.setField(user, "status", Status.DORMANT);
 
-        given(usersRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.of(user));
 
         verificationService.sendDormantVerificationCode(email);
 
@@ -124,7 +134,10 @@ class AuthVerificationServiceTest {
     @DisplayName("휴면 인증번호 발송 실패 - 회원이 아님")
     void sendDormantVerificationCode_userNotFound() {
         String email = "unknown@test.com";
-        given(usersRepository.findByEmail(email)).willReturn(Optional.empty());
+        String hash = "hashed_unknown";
+
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> verificationService.sendDormantVerificationCode(email))
                 .isInstanceOf(UserNotFoundException.class);
@@ -134,10 +147,13 @@ class AuthVerificationServiceTest {
     @DisplayName("휴면 인증번호 발송 실패 - 휴면 계정이 아님")
     void sendDormantVerificationCode_notDormant() {
         String email = "active@test.com";
+        String hash = "hashed_active";
+
         Users user = new Users();
         ReflectionTestUtils.setField(user, "status", Status.ACTIVE);
 
-        given(usersRepository.findByEmail(email)).willReturn(Optional.of(user));
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.of(user));
 
         assertThatThrownBy(() -> verificationService.sendDormantVerificationCode(email))
                 .isInstanceOf(UserNotDormantException.class);
@@ -148,6 +164,7 @@ class AuthVerificationServiceTest {
     @DisplayName("휴면 해제 처리 성공 - 인증번호 일치")
     void unlockDormantAccount_success() {
         String email = "dormant@test.com";
+        String hash = "hashed_dormant";
         String code = "123456";
         String key = RedisKeyPrefix.EMAIL_DORMANT_CODE.buildKey(email);
 
@@ -156,7 +173,9 @@ class AuthVerificationServiceTest {
         ReflectionTestUtils.setField(user, "status", Status.DORMANT);
 
         given(redisUtil.getData(key)).willReturn(code);
-        given(usersRepository.findByEmail(email)).willReturn(Optional.of(user));
+
+        given(encryptionUtils.hash(email)).willReturn(hash);
+        given(usersRepository.findByEmailHash(hash)).willReturn(Optional.of(user));
 
         verificationService.unlockDormantAccount(email, code);
 
@@ -176,6 +195,6 @@ class AuthVerificationServiceTest {
         assertThatThrownBy(() -> verificationService.unlockDormantAccount(email, code))
                 .isInstanceOf(InvalidVerificationCodeException.class);
 
-        verify(usersRepository, never()).findByEmail(anyString());
+        verify(usersRepository, never()).findByEmailHash(anyString());
     }
 }

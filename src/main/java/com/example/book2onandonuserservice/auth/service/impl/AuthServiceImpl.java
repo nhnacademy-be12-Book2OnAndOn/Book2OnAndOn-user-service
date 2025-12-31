@@ -17,6 +17,7 @@ import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
 import com.example.book2onandonuserservice.global.annotation.DistributedLock;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
@@ -59,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
     private final PointHistoryService pointHistoryService;
     private final RedisUtil redisUtil;
     private final ApplicationEventPublisher eventPublisher;
+    private final EncryptionUtils encryptionUtils;
 
     private static final String LOCAL_PROVIDER = "local";
     private static final SecureRandom secureRandom = new SecureRandom();
@@ -111,6 +113,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserResponseDto signUp(LocalSignUpRequestDto request) {
         String cleanEmail = request.email().trim();
+        String emailHash = encryptionUtils.hash(cleanEmail);
 
         if (usersRepository.existsByUserLoginId(request.userLoginId())) {
             throw new UserLoginIdDuplicateException();
@@ -118,7 +121,7 @@ public class AuthServiceImpl implements AuthService {
         if (usersRepository.existsByNickname(request.nickname())) {
             throw new UserNicknameDuplicationException(); // "이미 사용중인 닉네임 입니다." 메시지 포함됨
         }
-        if (usersRepository.findByEmail(cleanEmail).isPresent()) {
+        if (usersRepository.findByEmailHash(emailHash).isPresent()) {
             throw new UserEmailDuplicateException();
         }
 
@@ -145,7 +148,8 @@ public class AuthServiceImpl implements AuthService {
         );
 
         newUser.setContactInfo(
-                request.email(),
+                cleanEmail,
+                emailHash,
                 request.phone(),
                 request.birth()
         );
@@ -197,7 +201,9 @@ public class AuthServiceImpl implements AuthService {
     // 아이디 찾기
     @Override
     public FindIdResponseDto findMemberIdByNameAndEmail(FindIdRequestDto request) {
-        Users user = usersRepository.findByNameAndEmail(request.name(), request.email())
+        String cleanEmail = request.email().trim();
+        String emailHash = encryptionUtils.hash(cleanEmail);
+        Users user = usersRepository.findByNameAndEmailHash(request.name(), emailHash)
                 .orElseThrow(() -> new UserNotFoundException("입력하신 정보와 일치하는 회원이 없습니다."));
 
         String maskedId = maskUserId(user.getUserLoginId());
@@ -208,7 +214,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void issueTemporaryPassword(FindPasswordRequestDto request) {
-        Users user = usersRepository.findByUserLoginIdAndEmail(request.userLoginId(), request.email())
+        String cleanEmail = request.email().trim();
+        String emailHash = encryptionUtils.hash(cleanEmail);
+        Users user = usersRepository.findByUserLoginIdAndEmailHash(request.userLoginId(), emailHash)
                 .orElseThrow(() -> new UserNotFoundException("입력하신 정보와 일치하는 회원이 없습니다."));
 
         String tempPassword = generateTempPassword();

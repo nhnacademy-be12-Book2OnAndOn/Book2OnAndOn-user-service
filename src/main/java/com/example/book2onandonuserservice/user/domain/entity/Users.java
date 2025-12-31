@@ -47,7 +47,11 @@ public class Users {
     private String name;
 
     @Column(name = "user_email", unique = true, length = 500, nullable = false)
+    @Convert(converter = EncryptStringConverter.class)
     private String email;
+
+    @Column(name = "user_email_hash", unique = true, length = 64, nullable = false)
+    private String emailHash;
 
     @Column(name = "user_phone", length = 255, nullable = false)
     @Convert(converter = EncryptStringConverter.class)
@@ -117,16 +121,18 @@ public class Users {
         this.nickname = safeNickname + "_" + UUID.randomUUID().toString().substring(0, 5);
     }
 
-    public void setContactInfo(String email, String phone, LocalDate birth) {
+    public void setContactInfo(String email, String emailHash, String phone, LocalDate birth) {
         this.email = email;
+        this.emailHash = emailHash;
         this.phone = phone;
         this.birth = birth;
     }
 
     //프로필 정보 수정
-    public void updateProfile(String name, String email, String nickname, String phone) {
+    public void updateProfile(String name, String email, String emailHash, String nickname, String phone) {
         this.name = name;
         this.email = email;
+        this.emailHash = emailHash;
         this.nickname = nickname;
         this.phone = phone;
     }
@@ -142,12 +148,24 @@ public class Users {
     }
 
     //회원 탈퇴
-    public void withDraw(String reason) {
+    public void withDraw(String reason, String withdrawnEmail, String withdrawnEmailHash) {
+        this.status = Status.CLOSED;
+        this.withdrawnAt = LocalDateTime.now();
+        this.name = "탈퇴회원";
+        this.nickname = "del_" + this.userId;
+        this.email = withdrawnEmail;
+        this.emailHash = withdrawnEmailHash;
+        this.phone = "Deleted";
+        this.withdrawReason = reason;
+    }
+
+    public void withDraw(String reason, String withdrawnEmailHash) {
         this.status = Status.CLOSED;
         this.withdrawnAt = LocalDateTime.now();
         this.name = "탈퇴회원";
         this.nickname = "del_" + this.userId;
         this.email = "withdrawn_" + this.userId + "@deleted.com";
+        this.emailHash = withdrawnEmailHash; // 해시 업데이트
         this.phone = "Deleted";
         this.withdrawReason = reason;
     }

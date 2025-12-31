@@ -9,6 +9,7 @@ import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingExcept
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.auth.repository.jpa.UserAuthRepository;
 import com.example.book2onandonuserservice.global.client.PaycoClient;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.entity.GradeName;
 import com.example.book2onandonuserservice.user.domain.entity.Status;
@@ -39,6 +40,7 @@ public class PaycoAuthService {
     private final UsersRepository usersRepository;
     private final UserGradeRepository userGradeRepository;
     private final PointHistoryService pointHistoryService;
+    private final EncryptionUtils encryptionUtils;
 
     private final AuthTokenService authTokenService;
 
@@ -85,6 +87,8 @@ public class PaycoAuthService {
             throw new PaycoInfoMissingException();
         }
 
+        String emailHash = encryptionUtils.hash(email);
+
         // 회원 조회 및 생성
         Users user;
         Optional<UserAuth> existingAuth = userAuthRepository.findByProviderAndProviderUserId(PAYCO_PROVIDER,
@@ -93,8 +97,8 @@ public class PaycoAuthService {
         if (existingAuth.isPresent()) {
             user = existingAuth.get().getUser();
         } else {
-            user = usersRepository.findByEmail(email)
-                    .orElseGet(() -> createNewUser(name, email, phone, birth));
+            user = usersRepository.findByEmailHash(emailHash)
+                    .orElseGet(() -> createNewUser(name, email, emailHash, phone, birth));
             linkUserWithPayco(user, providerId);
         }
 
@@ -102,7 +106,7 @@ public class PaycoAuthService {
         if (user.getUserLoginId() == null) {
             user.initSocialAccount(name, name);
         }
-        user.setContactInfo(email, phone, birth);
+        user.setContactInfo(email, emailHash, phone, birth);
 
         // 로그인 처리
         validateUserStatus(user);
@@ -130,13 +134,13 @@ public class PaycoAuthService {
         return null;
     }
 
-    private Users createNewUser(String name, String email, String phone, LocalDate birth) {
+    private Users createNewUser(String name, String email, String emailHash, String phone, LocalDate birth) {
         UserGrade defaultGrade = userGradeRepository.findByGradeName(GradeName.BASIC)
                 .orElseThrow(() -> new IllegalStateException("기본 회원 등급(BASIC)이 존재하지 않습니다."));
 
         Users newUser = new Users();
         newUser.initSocialAccount(name, name);
-        newUser.setContactInfo(email, phone, birth);
+        newUser.setContactInfo(email, emailHash, phone, birth);
         newUser.changeGrade(defaultGrade);
         Users savedUser = usersRepository.save(newUser);
 

@@ -72,13 +72,15 @@ class UserGradeSchedulerTest {
 
         Users realUserA = new Users();
         realUserA.initLocalAccount("userA", "pw", "A", "A");
-        realUserA.setContactInfo("a@a.com", "0101234", LocalDate.now());
+        // [수정] 해시값 인자 추가
+        realUserA.setContactInfo("a@a.com", "hashed_a@a.com", "0101234", LocalDate.now());
         realUserA.changeGrade(basic);
         userA = spy(realUserA);
 
         Users realUserB = new Users();
         realUserB.initLocalAccount("userB", "pw", "B", "B");
-        realUserB.setContactInfo("b@b.com", "0105678", LocalDate.now());
+        // [수정] 해시값 인자 추가
+        realUserB.setContactInfo("b@b.com", "hashed_b@b.com", "0105678", LocalDate.now());
         realUserB.changeGrade(royal);
         userB = spy(realUserB);
 
@@ -155,7 +157,8 @@ class UserGradeSchedulerTest {
 
         Users realUserC = new Users();
         realUserC.initLocalAccount("userC", "pw", "C", "C");
-        realUserC.setContactInfo("c@c.com", "0109999", LocalDate.now());
+        // [수정] 해시값 인자 추가
+        realUserC.setContactInfo("c@c.com", "hashed_c@c.com", "0109999", LocalDate.now());
         realUserC.changeGrade(basic);
         Users userC = spy(realUserC);
 

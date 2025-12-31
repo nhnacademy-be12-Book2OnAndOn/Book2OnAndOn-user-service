@@ -25,6 +25,7 @@ import com.example.book2onandonuserservice.auth.service.AuthVerificationService;
 import com.example.book2onandonuserservice.auth.service.PaycoAuthService;
 import com.example.book2onandonuserservice.auth.service.impl.AuthServiceImpl;
 import com.example.book2onandonuserservice.global.event.EmailSendEvent;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisKeyPrefix;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
@@ -81,6 +82,8 @@ class AuthServiceImplTest {
     private RedisUtil redisUtil;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private EncryptionUtils encryptionUtils; // [추가]
 
     private UserGrade defaultGrade;
 
@@ -147,10 +150,15 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 성공 - 포인트 적립 실패해도 가입은 진행됨")
     void signUp_success_evenIfPointFails() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        String fakeHash = "hashedEmail"; // [추가]
+
+        // [수정] 해시 생성 Mock
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash);
 
         when(usersRepository.existsByUserLoginId(request.userLoginId())).thenReturn(false);
         when(usersRepository.existsByNickname(request.nickname())).thenReturn(false);
-        when(usersRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        // [수정] 해시값으로 중복 조회 Mock
+        when(usersRepository.findByEmailHash(fakeHash)).thenReturn(Optional.empty());
 
         String redisKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey(request.email());
         when(redisUtil.getData(redisKey)).thenReturn("true");
@@ -180,6 +188,7 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 실패 - 아이디 중복")
     void signUp_fail_duplicateId() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        when(encryptionUtils.hash(anyString())).thenReturn("hash"); // [추가]
         when(usersRepository.existsByUserLoginId(request.userLoginId())).thenReturn(true);
 
         assertThatThrownBy(() -> authService.signUp(request))
@@ -190,6 +199,7 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 실패 - 닉네임 중복")
     void signUp_fail_duplicateNickname() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        when(encryptionUtils.hash(anyString())).thenReturn("hash"); // [추가]
         when(usersRepository.existsByUserLoginId(request.userLoginId())).thenReturn(false);
         when(usersRepository.existsByNickname(request.nickname())).thenReturn(true);
 
@@ -201,9 +211,13 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 실패 - 이메일 중복")
     void signUp_fail_duplicateEmail() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        String fakeHash = "hashedEmail";
+
+        // [수정] 해시 생성 및 중복 조회 설정
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash);
         when(usersRepository.existsByUserLoginId(request.userLoginId())).thenReturn(false);
         when(usersRepository.existsByNickname(request.nickname())).thenReturn(false);
-        when(usersRepository.findByEmail(request.email())).thenReturn(Optional.of(new Users()));
+        when(usersRepository.findByEmailHash(fakeHash)).thenReturn(Optional.of(new Users()));
 
         assertThatThrownBy(() -> authService.signUp(request))
                 .isInstanceOf(UserEmailDuplicateException.class);
@@ -213,9 +227,12 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 실패 - 이메일 미인증")
     void signUp_fail_emailNotVerified() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        String fakeHash = "hashedEmail";
+
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash); // [추가]
         when(usersRepository.existsByUserLoginId(request.userLoginId())).thenReturn(false);
         when(usersRepository.existsByNickname(request.nickname())).thenReturn(false);
-        when(usersRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        when(usersRepository.findByEmailHash(fakeHash)).thenReturn(Optional.empty()); // [수정]
 
         String redisKey = RedisKeyPrefix.EMAIL_VERIFIED.buildKey(request.email());
         when(redisUtil.getData(redisKey)).thenReturn(null);
@@ -228,9 +245,12 @@ class AuthServiceImplTest {
     @DisplayName("회원가입 실패 - 기본 등급(BASIC) 데이터 없음")
     void signUp_fail_noDefaultGrade() {
         LocalSignUpRequestDto request = createSignUpRequest();
+        String fakeHash = "hashedEmail";
+
+        when(encryptionUtils.hash(anyString())).thenReturn(fakeHash); // [추가]
         when(usersRepository.existsByUserLoginId(any())).thenReturn(false);
         when(usersRepository.existsByNickname(any())).thenReturn(false);
-        when(usersRepository.findByEmail(any())).thenReturn(Optional.empty());
+        when(usersRepository.findByEmailHash(fakeHash)).thenReturn(Optional.empty()); // [수정]
         when(redisUtil.getData(any())).thenReturn("true");
 
         when(userGradeRepository.findByGradeName(GradeName.BASIC)).thenReturn(Optional.empty());
@@ -329,8 +349,11 @@ class AuthServiceImplTest {
         FindIdRequestDto request = new FindIdRequestDto("홍길동", "a@a.com");
         Users user = new Users();
         ReflectionTestUtils.setField(user, "userLoginId", "testUser1234");
+        String fakeHash = "hashedEmail";
 
-        when(usersRepository.findByNameAndEmail("홍길동", "a@a.com"))
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash); // [추가]
+        // [수정] 해시값으로 조회
+        when(usersRepository.findByNameAndEmailHash("홍길동", fakeHash))
                 .thenReturn(Optional.of(user));
 
         FindIdResponseDto response = authService.findMemberIdByNameAndEmail(request);
@@ -344,8 +367,11 @@ class AuthServiceImplTest {
         FindIdRequestDto request = new FindIdRequestDto("홍길동", "a@a.com");
         Users user = new Users();
         ReflectionTestUtils.setField(user, "userLoginId", "ab");
+        String fakeHash = "hashedEmail";
 
-        when(usersRepository.findByNameAndEmail("홍길동", "a@a.com"))
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash); // [추가]
+        // [수정] 해시값으로 조회
+        when(usersRepository.findByNameAndEmailHash("홍길동", fakeHash))
                 .thenReturn(Optional.of(user));
 
         FindIdResponseDto response = authService.findMemberIdByNameAndEmail(request);
@@ -357,7 +383,8 @@ class AuthServiceImplTest {
     @DisplayName("아이디 찾기 실패 - 회원 없음")
     void findId_fail_notFound() {
         FindIdRequestDto request = new FindIdRequestDto("홍길동", "a@a.com");
-        when(usersRepository.findByNameAndEmail(any(), any())).thenReturn(Optional.empty());
+        when(encryptionUtils.hash(anyString())).thenReturn("hash"); // [추가]
+        when(usersRepository.findByNameAndEmailHash(any(), any())).thenReturn(Optional.empty()); // [수정]
 
         assertThatThrownBy(() -> authService.findMemberIdByNameAndEmail(request))
                 .isInstanceOf(UserNotFoundException.class);
@@ -369,10 +396,13 @@ class AuthServiceImplTest {
     void issueTemporaryPassword_success() {
         FindPasswordRequestDto request = new FindPasswordRequestDto("id", "a@a.com");
         Users user = mock(Users.class);
+        String fakeHash = "hashedEmail";
 
-        when(usersRepository.findByUserLoginIdAndEmail("id", "a@a.com"))
+        when(encryptionUtils.hash(request.email())).thenReturn(fakeHash); // [추가]
+        // [수정] 해시값으로 조회
+        when(usersRepository.findByUserLoginIdAndEmailHash("id", fakeHash))
                 .thenReturn(Optional.of(user));
-        when(user.getEmail()).thenReturn("a@a.com");
+        when(user.getEmail()).thenReturn("a@a.com"); // [주의] 이메일 발송 위해 필요
         when(passwordEncoder.encode(anyString())).thenReturn("encodedTemp");
 
         authService.issueTemporaryPassword(request);
@@ -385,7 +415,8 @@ class AuthServiceImplTest {
     @DisplayName("임시 비밀번호 발급 실패 - 회원 없음")
     void issueTemporaryPassword_fail_notFound() {
         FindPasswordRequestDto request = new FindPasswordRequestDto("id", "a@a.com");
-        when(usersRepository.findByUserLoginIdAndEmail(any(), any()))
+        when(encryptionUtils.hash(anyString())).thenReturn("hash"); // [추가]
+        when(usersRepository.findByUserLoginIdAndEmailHash(any(), any())) // [수정]
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.issueTemporaryPassword(request))

@@ -8,6 +8,7 @@ import com.example.book2onandonuserservice.auth.exception.InvalidRefreshTokenExc
 import com.example.book2onandonuserservice.auth.exception.PaycoInfoMissingException;
 import com.example.book2onandonuserservice.auth.exception.PaycoServerException;
 import com.example.book2onandonuserservice.global.dto.ErrorResponse;
+import com.example.book2onandonuserservice.global.exception.CryptoException;
 import com.example.book2onandonuserservice.point.exception.AdminAdjustPointNegativeBalanceException;
 import com.example.book2onandonuserservice.point.exception.DuplicatePointPolicyException;
 import com.example.book2onandonuserservice.point.exception.InactivePointPolicyException;
@@ -65,7 +66,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * [400] Bad Request (잘못된 요청 공통 처리) - 새로 추가된 SameAsOldPasswordException 등도 여기서 일괄 처리됩니다.
+     * [400] Bad Request (잘못된 요청 공통 처리)
      */
     @ExceptionHandler({
             // User Exceptions
@@ -153,13 +154,13 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * [404] 리소스 찾을 수 없음 - GradeNotFoundException도 여기서 처리됩니다.
+     * [404] 리소스 찾을 수 없음
      */
     @ExceptionHandler({
             UserNotFoundException.class,
             AddressNotFoundException.class,
             PointPolicyNotFoundException.class,
-            GradeNotFoundException.class // 중복 제거 및 통합
+            GradeNotFoundException.class
     })
     public ResponseEntity<ErrorResponse> handlerNotFoundException(RuntimeException ex) {
         log.warn("Not Found Exception: {}", ex.getMessage());
@@ -178,6 +179,17 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * [500] 암호화/보안 관련 시스템 오류 (추가됨) CryptoException을 상속받은 모든 예외(CryptoConfiguration, Encryption, Decryption, Hashing)를
+     * 여기서 처리합니다.
+     */
+    @ExceptionHandler(CryptoException.class)
+    public ResponseEntity<ErrorResponse> handleCryptoException(CryptoException ex) {
+        // 보안 오류는 서버 내부 문제이므로 Error 레벨 로그와 스택트레이스를 남깁니다.
+        log.error("보안/암호화 시스템 오류 발생: ", ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "CRYPTO_ERROR", "서버 내부 보안 처리 중 오류가 발생했습니다.");
+    }
+
+    /**
      * [502] 외부 API 연동 오류
      */
     @ExceptionHandler(PaycoServerException.class)
@@ -190,11 +202,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
-        log.error("시스템 오류 발생: ", ex); // 스택트레이스 포함 로그
+        log.error("시스템 오류 발생: ", ex);
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.");
     }
 
-    // Helper Method (공통 응답 생성)
+    // Helper Method
     private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String code, String message) {
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),

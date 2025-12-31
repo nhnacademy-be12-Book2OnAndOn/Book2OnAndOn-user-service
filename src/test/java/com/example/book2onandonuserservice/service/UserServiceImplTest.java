@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import com.example.book2onandonuserservice.global.client.BookServiceClient;
 import com.example.book2onandonuserservice.global.dto.MyLikedBookResponseDto;
 import com.example.book2onandonuserservice.global.dto.RestPage;
+import com.example.book2onandonuserservice.global.util.EncryptionUtils;
 import com.example.book2onandonuserservice.global.util.RedisUtil;
 import com.example.book2onandonuserservice.point.service.PointHistoryService;
 import com.example.book2onandonuserservice.user.domain.dto.request.AdminUserUpdateRequestDto;
@@ -74,6 +75,9 @@ class UserServiceImplTest {
     @Mock
     private RedisUtil redisUtil;
 
+    @Mock
+    private EncryptionUtils encryptionUtils;
+
 
     private Users dummyUser;
     private UserGrade dummyGrade;
@@ -90,6 +94,7 @@ class UserServiceImplTest {
         );
         dummyUser.setContactInfo(
                 "test@test.com",
+                "hashed_test@test.com",
                 "01012345678",
                 LocalDate.of(2000, 1, 1)
         );
@@ -130,6 +135,8 @@ class UserServiceImplTest {
                 "New Name", "test@test.com", "TestNick", "01099999999"
         );
 
+        given(encryptionUtils.hash("test@test.com")).willReturn("hashed_test@test.com");
+
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
 
         UserResponseDto response = userService.updateMyInfo(1L, request);
@@ -145,8 +152,12 @@ class UserServiceImplTest {
                 "New Name", "new@test.com", "NewNick", "01099999999"
         );
 
+        String newHash = "hashed_new@test.com";
+        given(encryptionUtils.hash("new@test.com")).willReturn(newHash);
+
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(usersRepository.findByEmail("new@test.com")).willReturn(Optional.empty());
+        given(usersRepository.findByEmailHash(newHash)).willReturn(Optional.empty());
+
         given(usersRepository.findByNickname("NewNick")).willReturn(Optional.empty());
 
         given(redisUtil.getData(anyString())).willReturn("true");
@@ -166,10 +177,12 @@ class UserServiceImplTest {
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "Name", "duplicate@test.com", "Nick", "01099999999"
         );
+        String dupHash = "hashed_dup";
+
+        given(encryptionUtils.hash("duplicate@test.com")).willReturn(dupHash);
 
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
-        given(usersRepository.findByEmail("duplicate@test.com"))
-                .willReturn(Optional.of(new Users()));
+        given(usersRepository.findByEmailHash(dupHash)).willReturn(Optional.of(new Users()));
 
         assertThatThrownBy(() -> userService.updateMyInfo(1L, request))
                 .isInstanceOf(UserEmailDuplicateException.class);
@@ -181,7 +194,6 @@ class UserServiceImplTest {
         UserUpdateRequestDto request = new UserUpdateRequestDto(
                 "Name", "test@test.com", "DuplicateNick", "01099999999"
         );
-
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
         given(usersRepository.findByNickname("DuplicateNick"))
                 .willReturn(Optional.of(new Users()));
@@ -237,6 +249,8 @@ class UserServiceImplTest {
     @DisplayName("회원 탈퇴 성공")
     void deleteUser_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+
+        given(encryptionUtils.hash(anyString())).willReturn("withdrawnHash");
 
         userService.deleteUser(1L, "사유");
 
@@ -316,6 +330,8 @@ class UserServiceImplTest {
     @DisplayName("관리자 - 회원 탈퇴 성공")
     void deleteUserByAdmin_Success() {
         given(usersRepository.findById(1L)).willReturn(Optional.of(dummyUser));
+
+        given(encryptionUtils.hash(anyString())).willReturn("withdrawnHash");
 
         userService.deleteUserByAdmin(1L, "관리자 사유");
 

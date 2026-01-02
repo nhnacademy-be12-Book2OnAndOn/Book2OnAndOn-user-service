@@ -14,7 +14,6 @@ import com.example.book2onandonuserservice.point.domain.entity.PointHistory;
 import com.example.book2onandonuserservice.point.domain.entity.PointReason;
 import com.example.book2onandonuserservice.point.exception.AdminAdjustPointNegativeBalanceException;
 import com.example.book2onandonuserservice.point.exception.InsufficientPointException;
-import com.example.book2onandonuserservice.point.exception.InvalidPointRateException;
 import com.example.book2onandonuserservice.point.exception.InvalidRefundPointException;
 import com.example.book2onandonuserservice.point.exception.PointBalanceIntegrityException;
 import com.example.book2onandonuserservice.point.exception.RefundPointRangeExceededException;
@@ -31,11 +30,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -132,7 +133,9 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     @Override
     @Transactional(readOnly = true)
     public CurrentPointResponseDto getMyCurrentPoint(Long userId) {
+        log.info("[Point-Query] 현재 포인트 조회 시작 - userId: {}", userId);
         int latestTotal = getLatestTotalForRead(userId);
+        log.info("[Point-Query] 현재 포인트 조회 완료 - userId: {}, total: {}", userId, latestTotal);
         return new CurrentPointResponseDto(latestTotal);
     }
 
@@ -140,6 +143,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // 3-1. 회원가입 적립
     @Override
     public EarnPointResponseDto earnSignupPoint(Long userId) {
+        log.info("[Point-Earn] 회원가입 포인트 적립 시도 - userId: {}", userId);
+
         // 유저 로딩
         Users user = userReferenceLoader.getReference(userId);
         int latestTotal = getLatestTotalForUpdate(userId);
@@ -148,6 +153,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         boolean existsSignup = pointHistoryRepository.existsByUserUserIdAndPointReason(userId, PointReason.SIGNUP);
         if (existsSignup) {
             // 택 1
+            log.warn("[Point-Earn] 이미 회원가입 포인트가 지급된 사용자입니다. - userId: {}", userId);
             // return new EarnPointResponseDto(0, latestTotal, PointReason.SIGNUP); // -> 이미 회원가입된 유저일 경우, 0포인트 지급
             throw new SignupPointAlreadyGrantedException(userId); // -> 예외처리
         }
@@ -157,6 +163,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         // 비활성 or 0P 설정 ➜ 적립 없이 끝 (회원가입은 성공, 포인트는 없음)
         if (change <= 0) {
+            log.info("[Point-Earn] 지급 설정된 포인트가 0입니다. 적립을 건너뜁니다. - userId: {}", userId);
             return new EarnPointResponseDto(0, latestTotal, PointReason.SIGNUP);
         }
 
@@ -174,12 +181,15 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         );
         pointHistoryRepository.save(history);
 
+        log.info("[Point-Earn] 회원가입 포인트 적립 완료 - userId: {}, 지급액: {}, 최종잔액: {}", userId, change, newTotal);
         return new EarnPointResponseDto(change, newTotal, PointReason.SIGNUP);
     }
 
     // 3-2. 리뷰 작성 적립 (일반 / 사진)
     @Override
     public EarnPointResponseDto earnReviewPoint(EarnReviewPointRequestDto dto) {
+        log.info("[Point-Earn] 리뷰 포인트 적립 시도 - userId: {}, reviewId: {}, 사진포함: {}", dto.getUserId(), dto.getReviewId(),
+                dto.isHasImage());
 
         Long userId = dto.getUserId();
         Long reviewId = dto.getReviewId();
@@ -203,6 +213,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         int change = pointCalculationHelper.calculateByPolicyName(policyName);
         if (change <= 0) {
+            log.info("[Point-Earn] 리뷰 적립 정책 금액이 0입니다. - policy: {}", policyName);
             return new EarnPointResponseDto(0, latestTotal, PointReason.REVIEW);
         }
 
@@ -220,17 +231,20 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         );
         pointHistoryRepository.save(history);
 
+        log.info("[Point-Earn] 리뷰 포인트 적립 성공 - userId: {}, reviewId: {}, 적립액: {}, 최종잔액: {}", dto.getUserId(),
+                dto.getReviewId(), change, newTotal);
         return new EarnPointResponseDto(change, newTotal, PointReason.REVIEW);
     }
 
-    // 3-3. 도서 결제 적립 (유저 등급별 기본 적립률 책정)
+    // 3-3. 주문 결제 적립 (유저 등급별 기본 적립률 책정)
     @Override
     public EarnPointResponseDto earnOrderPoint(EarnOrderPointRequestDto dto) {
+        log.info("[Point-Earn] 주문 적립 시도 - userId: {}, orderId: {}, 결제금액: {}", dto.getUserId(),
+                dto.getOrderId(), dto.getPureAmount());
 
         Long userId = dto.getUserId();
         Long orderId = dto.getOrderId();
         Integer pureAmountObj = dto.getPureAmount();
-        Double gradeRate = dto.getPointAddRate();
 
         if (userId == null) {
             throw new MissingRequiredFieldException(FIELD_USER_ID);
@@ -241,9 +255,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         if (pureAmountObj == null) {
             throw new MissingRequiredFieldException(FIELD_PURE_AMOUNT);
         }
-        if (gradeRate == null) {
-            throw new InvalidPointRateException(null);
-        }
 
         int pureAmount = pureAmountObj;
 
@@ -252,16 +263,16 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         // 2) 금액/비율 검증
         pointHistoryValidator.validatePositiveAmount(pureAmount, "주문 금액은 0보다 커야 합니다.");
-        if (gradeRate == null || gradeRate <= 0) {
-            throw new InvalidPointRateException(gradeRate);
-        }
 
         Users user = userReferenceLoader.getReference(userId);
+        Long gradeId = user.getUserGrade().getGradeId();
+        Double gradeRate = user.getUserGrade().getUserPointAddRate();
         int latestTotal = getLatestTotalForUpdate(userId);
 
         // 3) 등급 적립률로 적립 포인트 계산
         int change = (int) Math.round(pureAmount * gradeRate);
         if (change <= 0) {
+            log.info("[Point-Earn] 계산된 적립 포인트가 0입니다. - userId: {}, orderId: {}", dto.getUserId(), dto.getOrderId());
             return new EarnPointResponseDto(0, latestTotal, PointReason.ORDER);
         }
 
@@ -279,6 +290,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         );
         pointHistoryRepository.save(history);
 
+        log.info("[Point-Earn] 주문 적립 완료 - userId: {}, orderId: {}, 적립액: {}, 최종잔액: {}", dto.getUserId(),
+                dto.getOrderId(), change, newTotal);
         return new EarnPointResponseDto(change, newTotal, PointReason.ORDER);
     }
 
@@ -287,6 +300,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // -> 만료 스케줄러와 동시 실행될 가능성 고려
     @Override
     public EarnPointResponseDto usePoint(UsePointRequestDto dto) {
+        log.info("[Point-Use] 포인트 사용 시작 - userId: {}, orderId: {}, 사용금액: {}", dto.getUserId(), dto.getOrderId(),
+                dto.getUseAmount());
 
         Long userId = dto.getUserId();
         Long orderId = dto.getOrderId();
@@ -314,6 +329,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int latestTotal = getLatestTotalForUpdate(userId);
         // 잔액 부족 검증
         if (latestTotal < useAmount) {
+            log.error("[Point-Use] 잔액 부족 오류 - userId: {}, 현재잔액: {}, 요청금액: {}", dto.getUserId(), latestTotal,
+                    dto.getUseAmount());
             throw new InsufficientPointException(latestTotal, useAmount);
         }
 
@@ -325,6 +342,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         List<PointHistory> earnRows = // 락 걸린 적립 row 조회
                 // 잔액 확인: '적립(+)은 되었지만 아직 남아있는 포인트'만 조회 & 만료일이 오늘에 가장 가까운 것부터 리스트의 맨 위에 배치
                 pointHistoryRepository.findPointsForUsage(userId, now);
+        log.debug("[Point-Use] 차감 가능한 적립 행 수: {}", earnRows.size());
 
         // 3) FIFO방식으로 remaining_point 차감
         for (PointHistory row : earnRows) {
@@ -338,6 +356,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
             }
             // 각 적립 이력의 remainingPoint를 줄여 나간다.
             int usedHere = Math.min(remaining, remainToUse); // 포인트 차감
+            log.debug("[Point-Use-Detail] FIFO 차감 - HistoryID: {}, 이전잔액: {}, 차감액: {}", row.getPointHistoryId(),
+                    remaining, usedHere);
             row.setRemainingPoint(remaining - usedHere); // 잔액 갱신
             remainToUse -= usedHere; // 사용자 사용 총량 갱신
         }
@@ -346,6 +366,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         if (remainToUse > 0) {
             // 락을 걸었는데도 부족하다면,
             // totalPoints와 remainingPoint 합 불일치 데이터가 이미 깨져있을 가능성이 큼
+            log.error("[Point-Use] 무결성 깨짐 - DB 잔액 합계와 totalPoints 불일치. 미차감액: {}", remainToUse);
             throw new PointBalanceIntegrityException();
         }
 
@@ -365,16 +386,21 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         );
         pointHistoryRepository.save(useHistory);
 
+        log.info("[Point-Use] 사용 완료 - userId: {}, orderId: {}, 최종잔액: {}", dto.getUserId(), dto.getOrderId(), newTotal);
         return new EarnPointResponseDto(-useAmount, newTotal, PointReason.USE);
     }
 
-    // 4-1. 결제 취소 시 포인트 롤백 -> 비동기 방식으로 처리해아 함 -> rabbitMQ 적용
+    // 4-1. 결제 취소 시 포인트 롤백
     @Override
     public EarnPointResponseDto useCancel(Long orderId, Long userId) {
+        log.info("[Point-Cancel] 결제 취소 프로세스 시작 - userId: {}, orderId: {}", userId, orderId);
+
         if (orderId == null) {
+            log.error("[Point-Cancel] 필수 필드 누락: orderId가 null입니다.");
             throw new MissingRequiredFieldException(FIELD_ORDER_ID);
         }
         if (userId == null) {
+            log.error("[Point-Cancel] 필수 필드 누락: userId가 null입니다.");
             throw new MissingRequiredFieldException(FIELD_USER_ID);
         }
 
@@ -389,7 +415,11 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         // 둘 다 끝났으면 현재 total 기준으로 그대로 반환
         int currentTotal = getLatestTotalForUpdate(userId);
+        log.debug("[Point-Cancel] 멱등성 체크 - 복구여부: {}, 회수여부: {}, 현재잔액: {}", alreadyRolledBack, alreadyReclaimed,
+                currentTotal);
+
         if (alreadyRolledBack && alreadyReclaimed) {
+            log.info("[Point-Cancel] 이미 취소 처리가 완료된 주문입니다. 추가 작업 없이 종료합니다. - orderId: {}", orderId);
             return new EarnPointResponseDto(0, currentTotal, PointReason.REFUND);
         }
 
@@ -400,6 +430,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
         // ===== A) 사용포인트 복구(취소) =====
         if (!alreadyRolledBack) {
+            log.info("[Point-Cancel] 사용 포인트 복구 단계 진입 - orderId: {}", orderId);
             int usedSum = pointHistoryRepository.sumUsedPointByOrder(orderId, PointReason.USE);
 
             // 포인트를 안 쓴 주문이면 복구 없음 (단, 아래 구매적립 회수는 별개로 수행 가능)
@@ -419,28 +450,41 @@ public class PointHistoryServiceImpl implements PointHistoryService {
 
                 pointHistoryRepository.save(rollbackHistory);
 
+                log.info("[Point-Cancel] 사용 포인트 복구 성공 - 복구액: {}, 변경후잔액: {}", usedSum, newTotal);
                 netChange += usedSum;
                 latestTotal = newTotal;
+            } else {
+                log.info("[Point-Cancel] 해당 주문에서 사용된 포인트가 없어 복구를 생략합니다. - orderId: {}", orderId);
             }
         }
 
         // ===== B) 구매 적립(ORDER) 회수(취소) =====
         if (!alreadyReclaimed) {
+            log.info("[Point-Cancel] 구매 적립 포인트 회수 단계 진입 - orderId: {}", orderId);
             int newTotal = reclaimOrderEarnRemainingForCancel(user, orderId, latestTotal);
-            netChange += (newTotal - latestTotal); // newTotal - latestTotal 는 음수(차감)
-            latestTotal = newTotal;
-        }
 
+//            int reclaimedAmount = latestTotal - newTotal;
+//            netChange -= reclaimedAmount;
+            netChange += (newTotal - latestTotal); // newTotal - latestTotal 는 음수(차감)
+
+            latestTotal = newTotal;
+            log.info("[Point-Cancel] 구매 적립 회수 결과 - 회수액: {}, 최종잔액: {}", newTotal, latestTotal);
+        }
+        log.info("[Point-Cancel] 결제 취소 프로세스 최종 완료 - userId: {}, orderId: {}, 순변화량: {}, 최종잔액: {}", userId, orderId,
+                netChange, latestTotal);
         return new EarnPointResponseDto(netChange, latestTotal, PointReason.REFUND);
     }
 
     // useCancel Helper
     private int reclaimOrderEarnRemainingForCancel(Users user, Long orderId, int latestTotal) {
+        log.debug("[Point-Cancel-Reclaim] 적립 회수 헬퍼 시작 - orderId: {}, 시작전잔액: {}", orderId, latestTotal);
+
         // 멱등(취소): orderId + ORDER_RECLAIM + refundId null
         boolean alreadyReclaimed =
                 pointHistoryRepository.existsByOrderIdAndPointReasonAndRefundIdIsNull(orderId,
                         PointReason.ORDER_RECLAIM);
         if (alreadyReclaimed) {
+            log.info("[Point-Cancel-Reclaim] 이미 회수된 주문입니다. - orderId: {}", orderId);
             return latestTotal;
         }
 
@@ -449,6 +493,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                 pointHistoryRepository.findByOrderIdAndPointReason(orderId, PointReason.ORDER);
 
         if (orderEarnRows.isEmpty()) {
+            log.info("[Point-Cancel-Reclaim] 회수할 적립 내역이 존재하지 않습니다. - orderId: {}", orderId);
             return latestTotal;
         }
 
@@ -456,8 +501,10 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int reclaimAmount = orderEarnRows.stream()
                 .mapToInt(r -> r.getRemainingPoint() == null ? 0 : r.getRemainingPoint())
                 .sum();
+        log.info("[Point-Cancel-Reclaim] 회수 대상 포인트 확인 - 건수: {}, 총 회수 가능액: {}", orderEarnRows.size(), reclaimAmount);
 
         if (reclaimAmount <= 0) {
+            log.info("[Point-Cancel-Reclaim] 회수할 수 있는 잔여 포인트가 0입니다. - orderId: {}", orderId);
             return latestTotal;
         }
 
@@ -465,6 +512,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         for (PointHistory row : orderEarnRows) {
             Integer remaining = row.getRemainingPoint();
             if (remaining != null && remaining > 0) {
+                log.debug("[Point-Cancel-Reclaim] 적립행 회수 처리 - HistoryID: {}, 회수전 remaining: {}",
+                        row.getPointHistoryId(), row.getRemainingPoint());
                 row.setRemainingPoint(0);
             }
         }
@@ -483,13 +532,15 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                 null // refundId null == 취소 케이스
         );
         pointHistoryRepository.save(reclaimHistory);
-
+        log.info("[Point-Cancel-Reclaim] 적립금 회수 완료 - 회수액: {}, 새로운 총잔액: {}", reclaimAmount, newTotal);
         return newTotal;
     }
 
     // 5. 포인트 반환 (반품)
     @Override
     public EarnPointResponseDto refundPoint(RefundPointRequestDto dto) {
+        log.info("[Point-Refund] 반품 처리 시작 - userId: {}, orderId: {}, refundId: {}, 복구포인트: {}, 환불금적립: {}",
+                dto.getUserId(), dto.getOrderId(), dto.getRefundId(), dto.getUsedPoint(), dto.getRefundAmount());
 
         Long userId = dto.getUserId();
         Long orderId = dto.getOrderId();
@@ -575,9 +626,12 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         }
 
         // ===== 5-5) 반품 시 구매 적립(ORDER) 회수(remainingPoint만) =====
+        log.info("[Point-Refund] 기존 주문 적립분 회수 시도 - orderId: {}", dto.getOrderId());
         latestTotal = reclaimOrderEarnRemainingForRefund(user, orderId, refundId, latestTotal);
 
         // 최종 변화량
+        log.info("[Point-Refund] 반품 처리 최종 완료 - userId: {}, 변화량: {}, 최종잔액: {}", dto.getUserId(),
+                (latestTotal - beforeTotal), latestTotal);
         int netChange = latestTotal - beforeTotal;
         return new EarnPointResponseDto(netChange, latestTotal, PointReason.REFUND);
     }
@@ -635,11 +689,13 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // -> 문제점: 동시성(스케줄러 vs 사용자 액션) 정도
     @Override
     public void expirePoints(Long userId) {
+        log.info("[Point-Expire] 만료 스케줄러 실행 - userId: {}", userId);
 
         int beforeTotal = getLatestTotalForUpdate(userId);
 
         List<PointHistory> expiredRows = pointHistoryValidator.getExpiredEarnRows(userId);
         if (expiredRows.isEmpty()) {
+            log.debug("[Point-Expire] 만료 대상 행이 없습니다. - userId: {}", userId);
             return;
         }
 
@@ -648,6 +704,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                 .sum();
 
         if (expireTotal <= 0) {
+            log.info("[Point-Expire] 만료될 잔여 포인트가 0입니다. - userId: {}", userId);
             return;
         }
 
@@ -671,6 +728,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                 null
         );
         pointHistoryRepository.save(expireHistory);
+        log.info("[Point-Expire] 만료 처리 성공 - userId: {}, 만료액: {}, 최종잔액: {}", userId, expireTotal, newTotal);
     }
 
     // 7. 7일 내 소멸 예정 조회
@@ -691,6 +749,8 @@ public class PointHistoryServiceImpl implements PointHistoryService {
     // 8. 관리자 수동 포인트 지급/차감
     @Override
     public EarnPointResponseDto adjustPointByAdmin(PointHistoryAdminAdjustRequestDto dto) {
+        log.info("[Point-Admin] 관리자 조정 요청 - userId: {}, 조정액: {}", dto.getUserId(), dto.getAmount());
+
         Long userId = dto.getUserId();
         int amount = dto.getAmount();
 
@@ -700,6 +760,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int latestTotal = getLatestTotalForUpdate(userId);
         int newTotal = latestTotal + amount;
         if (newTotal < 0) {
+            log.error("[Point-Admin] 차감 후 잔액 음수 발생 불가 - 현재: {}, 요청: {}", latestTotal, dto.getAmount());
             throw new AdminAdjustPointNegativeBalanceException(latestTotal, amount);
         }
 
@@ -718,6 +779,7 @@ public class PointHistoryServiceImpl implements PointHistoryService {
                     getDefaultExpireAt()
             );
             pointHistoryRepository.save(history);
+            log.info("[Point-Admin] 관리자 조정 완료 - userId: {}, 최종잔액: {}", dto.getUserId(), newTotal);
             return new EarnPointResponseDto(amount, newTotal, PointReason.ADMIN_ADJUST);
         }
 

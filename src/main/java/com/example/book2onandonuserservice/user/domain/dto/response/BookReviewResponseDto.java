@@ -11,14 +11,13 @@ public class BookReviewResponseDto {
     private Long id;    // 리뷰아이디
     private Long bookId;// 도서아이디
     private Long userId;// 회원아이디
-    private String nickname; // 회원 닉네임
     private String title;// 리뷰 제목
     private String content;// 리뷰 내용
     private Integer score;// 평가점수
     private LocalDate createdAt;//생성 일시
     private List<ReviewImageResponse> images; // 리뷰 이미지 리스트
     private String bookTitle;
-    
+
 
     @Getter
     @NoArgsConstructor

@@ -51,7 +51,6 @@ public class PointInternalController {
         dto.setUserId(userId);
         dto.setOrderId(requestDto.getOrderId());
         dto.setPureAmount(requestDto.getPureAmount());
-        dto.setPointAddRate(requestDto.getPointAddRate());
 
         return ResponseEntity.ok(pointHistoryService.earnOrderPoint(dto));
     }

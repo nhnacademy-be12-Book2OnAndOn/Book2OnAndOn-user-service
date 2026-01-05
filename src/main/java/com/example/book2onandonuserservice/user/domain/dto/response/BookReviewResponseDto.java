@@ -16,6 +16,8 @@ public class BookReviewResponseDto {
     private Integer score;// 평가점수
     private LocalDate createdAt;//생성 일시
     private List<ReviewImageResponse> images; // 리뷰 이미지 리스트
+    private String bookTitle;
+
 
     @Getter
     @NoArgsConstructor

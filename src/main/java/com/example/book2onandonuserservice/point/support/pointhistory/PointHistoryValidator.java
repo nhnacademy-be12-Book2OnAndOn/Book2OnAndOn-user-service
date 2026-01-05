@@ -26,13 +26,6 @@ public class PointHistoryValidator {
         }
     }
 
-    // 2. 사용 가능 범위 검증 (ex. 주문금액-쿠폰 이하인지 등) -> 주문에서 할거임. 빼.
-//    public void validatePointRange(int useAmount, int maxUseAmount) {
-//        if (useAmount > maxUseAmount) {
-//            throw new PointRangeExceededException(maxUseAmount);
-//        }
-//    }
-
     // 3. 주문 중복 적립 방지
     public void validateOrderEarnNotDuplicated(Long orderId) {
         boolean exists = pointHistoryRepository.existsByOrderIdAndPointReason(orderId, PointReason.ORDER);

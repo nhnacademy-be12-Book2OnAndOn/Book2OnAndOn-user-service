@@ -265,7 +265,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         pointHistoryValidator.validatePositiveAmount(pureAmount, "주문 금액은 0보다 커야 합니다.");
 
         Users user = userReferenceLoader.getReference(userId);
-        Long gradeId = user.getUserGrade().getGradeId();
         Double gradeRate = user.getUserGrade().getUserPointAddRate();
         int latestTotal = getLatestTotalForUpdate(userId);
 
@@ -320,8 +319,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
         int useAmount = useAmountObj;
 
         // 1) 검증
-        // 주문에서 허용한 최대 사용 가능 포인트 범위 검증
-//        pointHistoryValidator.validatePointRange(useAmount, allowedMaxUseAmount);
         // 양수 검증
         pointHistoryValidator.validatePositiveAmount(useAmount, "사용 포인트는 0보다 커야 합니다.");
         // 같은 주문에 대한 중복 사용 방지
@@ -463,8 +460,6 @@ public class PointHistoryServiceImpl implements PointHistoryService {
             log.info("[Point-Cancel] 구매 적립 포인트 회수 단계 진입 - orderId: {}", orderId);
             int newTotal = reclaimOrderEarnRemainingForCancel(user, orderId, latestTotal);
 
-//            int reclaimedAmount = latestTotal - newTotal;
-//            netChange -= reclaimedAmount;
             netChange += (newTotal - latestTotal); // newTotal - latestTotal 는 음수(차감)
 
             latestTotal = newTotal;

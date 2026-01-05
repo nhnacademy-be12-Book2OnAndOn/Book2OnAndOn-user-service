@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/internal/users/{userId}/points") // 라우팅/인증으로 막아야 하는 엔드포인트(게이트웨이에서 internal prefix 차단, mTLS/서버간 토큰 등)
+@RequestMapping // 라우팅/인증으로 막아야 하는 엔드포인트(게이트웨이에서 internal prefix 차단, mTLS/서버간 토큰 등)
 @RequiredArgsConstructor
 public class PointInternalController {
 
@@ -28,13 +28,13 @@ public class PointInternalController {
     // 1. 회원가입 적립
 
     // 2. 리뷰 작성 적립 (일반/사진)
-    @PostMapping("/earn/review")
+    @PostMapping("/internal/users/reviews/event")
     public ResponseEntity<EarnPointResponseDto> earnReviewPoint(
-            @PathVariable Long userId,
+//            @PathVariable Long userId,
             @RequestBody EarnReviewPointInternalRequestDto requestDto
     ) {
         EarnReviewPointRequestDto dto = new EarnReviewPointRequestDto();
-        dto.setUserId(userId);
+        dto.setUserId(requestDto.getUserId());
         dto.setReviewId(requestDto.getReviewId());
         dto.setHasImage(requestDto.isHasImage());
 
@@ -42,7 +42,7 @@ public class PointInternalController {
     }
 
     // 3. 도서 결제 적립 (적립률)
-    @PostMapping("/earn/order")
+    @PostMapping("/internal/users/{userId}/points/earn/order")
     public ResponseEntity<EarnPointResponseDto> earnOrderPoint(
             @PathVariable Long userId,
             @RequestBody EarnOrderPointInternalRequestDto requestDto
@@ -56,7 +56,7 @@ public class PointInternalController {
     }
 
     // 4. 포인트 사용
-    @PostMapping("/use")
+    @PostMapping("/internal/users/{userId}/points/use")
     public ResponseEntity<EarnPointResponseDto> usePoint(
             @PathVariable Long userId,
             @RequestBody UsePointInternalRequestDto requestDto
@@ -72,7 +72,7 @@ public class PointInternalController {
 
     // 5. 포인트 반환 (반품만) -> order-service에서 “취소/반품을 refundPoint 하나로 몰아서 호출”하면 멱등/정합성이 깨질 수 있다.
     // -> 결제 롤백 포인트 반환(cancel)이 따로 있음.
-    @PostMapping("/refund")
+    @PostMapping("/internal/users/{userId}/points/refund")
     public ResponseEntity<EarnPointResponseDto> refundPoint(
             @PathVariable Long userId,
             @RequestBody RefundPointInternalRequestDto requestDto
